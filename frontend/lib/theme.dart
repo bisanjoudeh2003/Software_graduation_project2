@@ -4,6 +4,11 @@ const Color primaryGreen = Color(0xFF2F4F46);
 const Color lightCream = Color(0xFFF5F1EB);
 const Color softGreen = Color(0xFF3E6B5C);
 
+
+
+const Color darkText = Color(0xFF1E1E1E);
+const Color softGrey = Color(0xFF8A8A8A);
+
 final ThemeData appTheme = ThemeData(
   scaffoldBackgroundColor: lightCream,
   fontFamily: 'Playfair',

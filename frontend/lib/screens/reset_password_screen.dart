@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
-const Color primaryGreen = Color(0xFF2F4F3E);
+
+import '../theme.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String token;

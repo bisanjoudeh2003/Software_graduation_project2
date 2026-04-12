@@ -1,21 +1,19 @@
+
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'screens/welcome.dart';
 import '../screens/reset_password_screen.dart';
 import '../services/auth_service.dart';
 import 'package:app_links/app_links.dart';
-import 'package:flutter_stripe/flutter_stripe.dart'; 
 
 import '../screens/client_home.dart';
 import '../screens/photographer_dashboard.dart';
 import '../screens/venue_owner_home.dart';
 import '../screens/loading_screen.dart';
 
-void main()async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
-  Stripe.publishableKey = "pk_test_51TC2if4t47OxRIeEd647jAiHcCyYh6SVT3jxOI3t0974Wj5UQ0IulWU3i74nQ0MyuNspwdOvcVsSkMYbiHs0ONo800qtmBDycg"; 
-  await Stripe.instance.applySettings();
 }
 
 class MyApp extends StatefulWidget {
@@ -88,9 +86,7 @@ class _MyAppState extends State<MyApp> {
 
         if (role == "photographer") {
 
-         _home = PhotographerDashboard(
-  photographerId: user["id"],
-);
+  _home = const PhotographerDashboard();
 
         }
         else if (role == "venue_owner") {
