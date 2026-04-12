@@ -5,6 +5,7 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
+
     const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm'];
     const ext = file.originalname.split('.').pop().toLowerCase();
     const isVideo = videoExtensions.includes(ext) ||
@@ -15,9 +16,9 @@ const storage = new CloudinaryStorage({
     return {
       folder: "lensia/uploads",
       resource_type: isVideo ? "video" : "image",
- 
       allowed_formats: ["jpg", "png", "jpeg", "webp", "mp4", "mov", "webm"],
     };
+
   },
 });
 

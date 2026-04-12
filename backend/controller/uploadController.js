@@ -1,41 +1,46 @@
-const userModel = require("../model/userModel");   // أضف هذا السطر
+const userModel = require("../model/userModel");
 
-exports.uploadImage = async (req,res) => {
 
-try{
 
-     console.log("FILE:", req.file);      // ← أضف هاد
-    console.log("USER:", req.user); 
+/// UPLOAD PROFILE IMAGE
+exports.uploadImage = async (req, res) => {
 
-if(!req.file){
-return res.status(400).json({
-message:"No file uploaded"
-});
-}
+  try {
 
-const imageUrl = req.file.path;   // رابط الصورة من Cloudinary
+    console.log("FILE:", req.file);
+    console.log("USER:", req.user);
 
-/// جلب userId من التوكن
-const userId = req.user.id;
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded"
+      });
+    }
 
-/// تحديث صورة البروفايل في جدول users
-await userModel.updateProfileImage(userId, imageUrl);
+    const imageUrl = req.file.path;   // رابط الصورة من Cloudinary
 
-res.json({
+    /// جلب userId من التوكن
+    const userId = req.user.id;
 
-image_url: imageUrl
+    /// تحديث صورة البروفايل في جدول users
+    await userModel.updateProfileImage(userId, imageUrl);
 
-});
+    res.json({
+      image_url: imageUrl
+    });
 
-}catch(error){
+  } catch (error) {
 
-res.status(500).json({
-error:error.message
-});
+    res.status(500).json({
+      error: error.message
+    });
 
-}
+  }
 
 };
+
+
+
+/// UPLOAD COVER IMAGE
 exports.uploadCoverImage = async (req, res) => {
 
   try {
@@ -63,10 +68,11 @@ exports.uploadCoverImage = async (req, res) => {
 
   }
 
-}; 
+};
 
 
-// حذف صورة البروفايل
+
+/// حذف صورة البروفايل
 exports.deleteProfileImage = async (req, res) => {
 
   try {
@@ -89,7 +95,9 @@ exports.deleteProfileImage = async (req, res) => {
 
 };
 
-// حذف صورة الغلاف
+
+
+/// حذف صورة الغلاف
 exports.deleteCoverImage = async (req, res) => {
 
   try {
@@ -112,8 +120,13 @@ exports.deleteCoverImage = async (req, res) => {
 
 };
 
+
+
+/// UPLOAD PORTFOLIO MEDIA
 exports.uploadPortfolioMedia = async (req, res) => {
+
   try {
+
     if (!req.file) {
       return res.status(400).json({
         message: "No file uploaded"
@@ -122,7 +135,7 @@ exports.uploadPortfolioMedia = async (req, res) => {
 
     const mediaUrl = req.file.path;
     const mimeType = req.file.mimetype;
-  const mediaType = mediaUrl.includes("/video/upload/") ? "video" : "image";
+    const mediaType = mediaUrl.includes("/video/upload/") ? "video" : "image";
 
     console.log("FILE MIMETYPE:", mimeType);
     console.log("MEDIA URL:", mediaUrl);
@@ -134,10 +147,11 @@ exports.uploadPortfolioMedia = async (req, res) => {
     });
 
   } catch (error) {
+
     res.status(500).json({
       error: error.message
     });
+
   }
+
 };
-
-
