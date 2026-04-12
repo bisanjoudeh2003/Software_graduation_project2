@@ -1,13 +1,16 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const userModel = require('../model/userModel');
 const crypto = require("crypto");
+
+const pool = require("../config/db");
+const userModel = require('../model/userModel');
 const transporter = require("../config/mailer");
 
 const JWT_SECRET = "supersecretkey";
 
 
-// REGISTER
+
+/// REGISTER
 exports.register = async (req, res) => {
 
   try {
@@ -27,14 +30,17 @@ exports.register = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message
+    });
 
   }
+
 };
 
 
 
-// LOGIN
+/// LOGIN
 exports.login = async (req, res) => {
 
   try {
@@ -44,9 +50,11 @@ exports.login = async (req, res) => {
     const user = await userModel.findUserByEmail(email);
 
     if (!user) {
+
       return res.status(400).json({
         message: "User not found"
       });
+
     }
 
     const validPassword =
@@ -73,14 +81,17 @@ exports.login = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message
+    });
 
   }
+
 };
 
 
 
-// GET USER
+/// GET USER
 exports.getMe = async (req, res) => {
 
   try {
@@ -100,14 +111,125 @@ exports.getMe = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message
+    });
 
   }
+
 };
 
 
 
-// FORGOT PASSWORD
+/// UPDATE PROFILE
+exports.updateProfile = async (req, res) => {
+
+  try {
+
+    const userId = req.user.id;
+
+    const { full_name, phone } = req.body;
+
+    await pool.query(
+
+      `UPDATE users
+       SET full_name = ?, phone = ?
+       WHERE id = ?`,
+
+      [full_name, phone || null, userId]
+
+    );
+
+    const [rows] = await pool.query(
+
+      `SELECT id, full_name, email, role, phone, profile_image
+       FROM users
+       WHERE id=?`,
+
+      [userId]
+
+    );
+
+    res.json(rows[0]);
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
+};
+
+
+
+/// CHANGE PASSWORD
+exports.changePassword = async (req, res) => {
+
+  try {
+
+    const userId = req.user.id;
+
+    const { oldPassword, newPassword } = req.body;
+
+    const [rows] = await pool.query(
+
+      `SELECT password
+       FROM users
+       WHERE id=?`,
+
+      [userId]
+
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+
+    const match = await bcrypt.compare(
+      oldPassword,
+      rows[0].password
+    );
+
+    if (!match) {
+      return res.status(400).json({
+        error: "Old password incorrect"
+      });
+    }
+
+    const hash =
+      await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+
+      `UPDATE users
+       SET password = ?
+       WHERE id=?`,
+
+      [hash, userId]
+
+    );
+
+    res.json({
+      message: "Password updated"
+    });
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
+};
+
+
+
+/// FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
 
   try {
@@ -120,9 +242,10 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    const user = await userModel.findUserByEmail(email);
+    const user =
+      await userModel.findUserByEmail(email);
 
-    /// اذا الايميل غير موجود
+    // اذا الايميل غير موجود
     if (!user) {
       return res.status(404).json({
         message: "Email not found"
@@ -145,14 +268,18 @@ exports.forgotPassword = async (req, res) => {
       `http://localhost:3000/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
+
       to: email,
+
       subject: "Reset Your Password",
+
       html: `
         <h3>Password Reset</h3>
         <p>Click the link below:</p>
         <a href="${resetLink}">${resetLink}</a>
         <p>This link expires in 15 minutes</p>
       `,
+
     });
 
     return res.json({
@@ -162,7 +289,6 @@ exports.forgotPassword = async (req, res) => {
   } catch (err) {
 
     console.error(err);
-
     return res.status(500).json({
       message: "Server error"
     });
@@ -173,7 +299,7 @@ exports.forgotPassword = async (req, res) => {
 
 
 
-// RESET PASSWORD
+/// RESET PASSWORD
 exports.resetPassword = async (req, res) => {
 
   try {
@@ -210,4 +336,32 @@ exports.resetPassword = async (req, res) => {
     });
 
   }
+
+};
+
+
+
+/// UPDATE PROFILE IMAGE
+exports.updateProfileImage = async (req, res) => {
+
+  try {
+
+    const userId = req.user.id;
+
+    const { image_url } = req.body;
+
+    await userModel.updateProfileImage(userId, image_url);
+
+    res.json({
+      message: "Profile image updated"
+    });
+
+  } catch (err) {
+
+    res.status(500).json({
+      error: err.message
+    });
+
+  }
+
 };
