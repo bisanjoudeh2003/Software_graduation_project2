@@ -150,3 +150,22 @@ exports.updatePhotographer = async (req, res) => {
 
 };
 
+
+// for client 
+// for client 
+exports.getPhotographerById = async (req, res) => {
+  try {
+    const { id } = req.params; // هاد user_id قادم من Flutter
+
+    const photographer = await photographerModel.getPhotographerByUserId(id); // ✅ غيّر هون فقط
+
+    if (!photographer) {
+      return res.status(404).json({ message: "Photographer not found" });
+    }
+
+    res.json(photographer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+}; 

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const availabilityController = require("../controller/availabilityController");
+const availabilityController = require("../controller/photogragher_availabilityController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 

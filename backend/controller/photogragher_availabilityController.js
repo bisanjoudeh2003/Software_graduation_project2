@@ -1,4 +1,4 @@
-const availabilityModel = require("../model/availabilityModel");
+const availabilityModel = require("../model/photogragher_availabilityModel");
 const photographerModel = require("../model/photographerModel");
 
 // helper: نجيب photographer_id من التوكن

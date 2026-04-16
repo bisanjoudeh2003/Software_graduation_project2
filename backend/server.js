@@ -11,7 +11,7 @@ const photographerRoutes = require("./route/photographerRoutes");
 const photographerPortfolioRoutes = require("./route/photographerPortfolioRoutes");
 const portfolioItemsRoutes = require("./route/portfolioItemsRoutes");
 const venueRoutes = require("./route/venueRoutes");
-const availabilityRoutes = require("./route/availabilityRoutes");
+//const availabilityRoutes = require("./route/availabilityRoutes");
 const bookingRoutes = require("./route/bookingRoutes");
 const dashboardRoutes_venue = require("./route/dashboardRoutes-venue");
 const settingsRoutes = require("./route/venuesettingsRoutes");
@@ -28,6 +28,7 @@ const portfolioRoutes = require("./route/portfolioRoutes");
 const uploadRoutes = require("./route/uploadRoutes");
 const photogragher_bookingRoutes = require("./route/Photogragher_BookingRoutes");
 const notificationRoutes = require("./route/notificationRoutes");
+const photogragher_availabilityRoutes = require("./route/photoghragher_availabilityRoutes");
 
 // Booking controller (للكلاينت)
 const auth = require("./middleware/authMiddleware");
@@ -68,7 +69,7 @@ app.use("/api/photographer", photographerRoutes);
 app.use("/api/photographer-portfolio", photographerPortfolioRoutes);
 app.use("/api/portfolio-items", portfolioItemsRoutes);
 app.use("/api", venueRoutes);
-app.use("/api", availabilityRoutes);
+//app.use("/api", availabilityRoutes);
 app.use("/api", bookingRoutes);
 app.use("/api", dashboardRoutes_venue);
 app.use("/api", uploadRoutes);
@@ -79,12 +80,14 @@ app.use("/api", venuefavoriteRoutes);
 app.use("/api", messagesRoutes);
 app.use("/api", stripeRoutes);
 app.use("/api", ReportRoutes);
-app.use("/api", userRoutes);
+
 
 // ── PHOTOGRAPHER-SIDE ROUTES ───────────────────────────────
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/ph-bookings", photogragher_bookingRoutes);
 app.use("/api/portfolio", portfolioRoutes);
+app.use("/api/availability", photogragher_availabilityRoutes)
+app.use("/api", userRoutes);
 
 // BOOKING ROUTES - للكلاينت
 app.post("/api/bookings",                 auth, bookingCtrl.createBooking);

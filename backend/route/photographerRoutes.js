@@ -33,4 +33,13 @@ router.put(
  photographerController.updatePhotographer
 );
 
+
+
+router.get(
+  "/:id",
+  authMiddleware,
+  photographerController.getPhotographerById
+); 
+
+
 module.exports = router;

@@ -6,7 +6,7 @@ import 'package:video_player/video_player.dart';
 import '../services/auth_service.dart';
 import 'portfolio_management_screen.dart';
 import 'album_details_screen.dart';
-import 'create_edit_profile_screen.dart';
+import 'photographer_profile_page.dart';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const _bg        = Color(0xFFF7F4EF);
@@ -137,29 +137,12 @@ class _PortfolioViewScreenState extends State<PortfolioViewScreen>
     } catch (_) {}
   }
 
-  Future<void> _goEditProfile() async {
-    final result = await Navigator.push(context, MaterialPageRoute(
-      builder: (_) => CreateEditProfileScreen(
-        isEdit:      true,
-        fullName:    fullName,
-        currentData: photographer != null
-            ? Map<String, dynamic>.from(photographer!)
-            : null,
-        profileImage: profileImageUrl.isNotEmpty ? profileImageUrl : null,
-      ),
-    ));
-    if (result != null && result["updated"] == true) {
-      setState(() {
-        profileImageUrl = result["profile_image"] ?? profileImageUrl;
-        if (photographer == null) photographer = {};
-        photographer!["bio"]              = result["bio"];
-        photographer!["location"]         = result["location"];
-        photographer!["specialties"]      = result["specialties"];
-        photographer!["experience_years"] = result["experience_years"];
-        photographer!["price_per_hour"]   = result["price_per_hour"];
-      });
-    }
-  }
+ Future<void> _goEditProfile() async {
+  await Navigator.push(context, MaterialPageRoute(
+    builder: (_) => const PhotographerProfilePage(),
+  ));
+  _loadAll();
+}
 
   Future<void> _goEditWorks() async {
     await Navigator.push(context, MaterialPageRoute(

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service.dart';
 import '../theme.dart';
-import 'availability_screen.dart';
+import 'photoghragher_availability_screen.dart';
 
 class AvailabilityViewScreen extends StatefulWidget {
   const AvailabilityViewScreen({super.key});

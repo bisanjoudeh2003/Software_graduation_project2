@@ -251,8 +251,8 @@ class _BookingsScreenState extends State<BookingsScreen>
     if (token == null) return;
 
     final endpoint = _isPhotographer
-        ? '/bookings/photographer'
-        : '/bookings/client';
+        ? '/ph-bookings/photographer'
+        : '/ph-bookings/client';
 
     final uri = Uri.parse('$_baseUrl$endpoint').replace(
       queryParameters: status != null ? {'status': status} : null,
@@ -276,7 +276,7 @@ class _BookingsScreenState extends State<BookingsScreen>
     final token = await _token();
     if (token == null) return;
     final res = await http.get(
-      Uri.parse('$_baseUrl/bookings/photographer/stats'),
+      Uri.parse('$_baseUrl/ph-bookings/photographer/stats'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (res.statusCode == 200) {
@@ -295,7 +295,7 @@ class _BookingsScreenState extends State<BookingsScreen>
     if (rejectionReason != null) body['rejection_reason'] = rejectionReason;
 
     final res = await http.patch(
-      Uri.parse('$_baseUrl/bookings/$id/status'),
+      Uri.parse('$_baseUrl/ph-bookings/$id/status'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -340,7 +340,7 @@ class _BookingsScreenState extends State<BookingsScreen>
     if (token == null) return;
 
     final res = await http.patch(
-      Uri.parse('$_baseUrl/bookings/$id/reschedule'),
+      Uri.parse('$_baseUrl/ph-bookings/$id/reschedule'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
