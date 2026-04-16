@@ -730,3 +730,33 @@ exports.getAlbumById = async (req, res) => {
     });
   }
 };
+
+
+// for client 
+exports.getPortfolioByPhotographerId = async (req, res) => {
+  try {
+    const { photographerId } = req.params; // هاد user_id
+
+    // ✅ أولاً جيب photographer_id من user_id
+    const photographer = await photographerModel.getPhotographerByUserId(photographerId);
+    
+    if (!photographer) {
+      return res.status(404).json({ message: "Photographer not found" });
+    }
+
+    // ✅ ثانياً استخدم photographer_id الصحيح
+    const portfolio = await portfolioModel.getPortfolioByPhotographer(
+      photographer.photographer_id
+    );
+
+    if (!portfolio) {
+      return res.status(404).json({ message: "Portfolio not found" });
+    }
+
+    res.json(portfolio);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

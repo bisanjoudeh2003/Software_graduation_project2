@@ -6,7 +6,20 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 
+
+// for client 
+
+router.get(
+  "/photographer/:photographerId",
+  authMiddleware,
+  portfolioController.getPortfolioByPhotographerId
+);   
+ 
+
 /// GET MY PORTFOLIO
+
+
+
 
 router.get(
  "/me",
@@ -136,6 +149,8 @@ router.get(
   roleMiddleware(["photographer"]),
   portfolioController.getAlbumById
 );
+
+
 
 
 

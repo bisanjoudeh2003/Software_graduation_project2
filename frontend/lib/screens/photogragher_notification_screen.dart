@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
-import 'bookings_screen.dart';
+import 'photogragher_bookings_screen.dart';
 // ── Palette (نفس الداشبورد) ───────────────────────────────────────────────────
 const _bg       = Color(0xFFF7F4EF);
 const _card     = Color(0xFFFFFFFF);

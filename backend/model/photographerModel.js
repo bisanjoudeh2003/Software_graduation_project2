@@ -74,8 +74,22 @@ const updatePhotographer = async (photographerId, userId, fields) => {
 };
 
 
+// جلب بروفايل مصور معين بالـ photographer_id
+const getPhotographerById = async (photographerId) => {
+  const [rows] = await db.query(
+    `SELECT p.*, u.full_name, u.profile_image, u.cover_image
+     FROM photographers p
+     JOIN users u ON p.user_id = u.id
+     WHERE p.photographer_id = ?`,
+    [photographerId]
+  );
+  return rows[0];
+};
+
+// وأضفها للـ exports
 module.exports = {
   getPhotographerByUserId,
+  getPhotographerById,      // ← جديد
   createPhotographer,
   updatePhotographer
 };

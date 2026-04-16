@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../services/message_service.dart';
 import 'venueowner_public_profile_page.dart';
 import 'client_public_profile_page.dart';
+import 'photographer_public_profile_page.dart';
 
 class ChatPage extends StatefulWidget {
   final int conversationId;
@@ -176,6 +177,16 @@ class _ChatPageState extends State<ChatPage> {
             ownerName: widget.otherUserName,
             ownerImage: widget.otherUserImage,
           )));
+      }
+          else if (widget.otherUserRole == "photographer") {
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => PhotographerPublicProfilePage(
+      photographerId: widget.otherUserId,
+      photographerName: widget.otherUserName,
+      photographerImage: widget.otherUserImage,
+    )));
+
+
       } else if (widget.otherUserRole == "client") {
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => ClientPublicProfilePage(
@@ -184,7 +195,9 @@ class _ChatPageState extends State<ChatPage> {
             clientImage: widget.otherUserImage,
           )));
       }
+      
     },
+    
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -199,12 +212,8 @@ class _ChatPageState extends State<ChatPage> {
             const Icon(Icons.info_outline_rounded,
                 size: 11, color: Colors.white60),
             const SizedBox(width: 4),
-            Text(
-              widget.otherUserRole == "venue_owner"
-                  ? "tap to view profile →"
-                  : widget.otherUserRole == "client"
-                      ? "tap to view profile →"
-                      : "",
+                        const Text(
+              "tap to view profile →",
               style: const TextStyle(fontFamily: "Montserrat",
                   fontSize: 11, color: Colors.white60),
             ),

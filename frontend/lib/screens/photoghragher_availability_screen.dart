@@ -893,13 +893,13 @@ String _p(int n) => n.toString().padLeft(2, '0');
 
                 // Confirm button
                 ElevatedButton(
-                  onPressed: () {
-                    if (selectedDate == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Please select a date")),
-                      );
-                      return;
-                    }
+               onPressed: () {
+  if (selectedDate == null) {
+    ScaffoldMessenger.of(ctx).showSnackBar(  // ← ctx الصح
+      const SnackBar(content: Text("Please select a date")),
+    );
+    return;
+  }
                     Navigator.pop(context);
                     _addBlockedSlot(
                       selectedDate!,

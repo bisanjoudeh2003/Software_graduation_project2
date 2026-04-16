@@ -4,14 +4,14 @@ import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
 import '../screens/login_screen.dart';
-// import '../theme.dart';
 
-import 'create_edit_profile_screen.dart';
+import 'photographer_profile_page.dart';
 import 'portfolio_view_screen.dart';
-import 'availability_screen.dart';
-import 'bookings_screen.dart';
-import 'notification_screen.dart';
-
+import 'photoghragher_availability_screen.dart';
+import 'photogragher_bookings_screen.dart';
+import 'photogragher_notification_screen.dart';
+import 'photographer_messages_page.dart';
+import '../services/message_service.dart';
 // ── Palette ───────────────────────────────────────────────────────────────────
 const _bg        = Color(0xFFF7F4EF);
 const _card      = Color(0xFFFFFFFF);
@@ -23,6 +23,9 @@ const _greenSoft = Color(0xFF3E6B5C);
 const _greenBg   = Color(0xFFE4EDE9);
 const _dark      = Color(0xFF1A1A1A);
 const _red       = Color(0xFFB84040);
+
+const primaryGreen = Color(0xFF2F4F46);
+const lightCream   = Color(0xFFF7F4EF);
 
 // ── Earnings Model ────────────────────────────────────────────────────────────
 class EarningsData {
@@ -104,20 +107,19 @@ class ScheduleItem {
       return time;
     }
   }
-bool get isToday {
-  try {
-    final cleanDate = date.split('T')[0]; // ← هاي الإضافة
-    final d   = DateTime.parse(cleanDate);
-    final now = DateTime.now();
-    return d.year == now.year && d.month == now.month && d.day == now.day;
-  } catch (_) {
-    return false;
+
+  bool get isToday {
+    try {
+      final cleanDate = date.split('T')[0];
+      final d   = DateTime.parse(cleanDate);
+      final now = DateTime.now();
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    } catch (_) {
+      return false;
+    }
   }
 }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PhotographerDashboard
 // ─────────────────────────────────────────────────────────────────────────────
 class PhotographerDashboard extends StatefulWidget {
   const PhotographerDashboard({super.key});
@@ -132,10 +134,10 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
 
   Map<String, dynamic>? photographerProfile;
   Map<String, dynamic>? user;
-  EarningsData _earnings      = EarningsData();
+  EarningsData _earnings            = EarningsData();
   List<ScheduleItem> _todaySchedule = [];
-  int _unreadCount            = 0;         // ← عداد الإشعارات
-
+  int  _unreadCount  = 0;
+  int _unreadMessagesCount = 0;
   bool loading       = true;
   int  _currentIndex = 0;
 
@@ -160,7 +162,6 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
   }
 
   // ── API ────────────────────────────────────────────────────────────────────
-
   Future<void> loadUser() async {
     try {
       user = await AuthService.getMe();
@@ -170,7 +171,8 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
           _loadProfile(token),
           _loadStats(token),
           _loadBookings(token),
-          _loadUnreadCount(token),   // ← أضفناها هون
+          _loadUnreadCount(token),
+            _loadUnreadMessagesCount(),
         ]);
       }
     } catch (e) {
@@ -194,7 +196,7 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
 
   Future<void> _loadStats(String token) async {
     final res = await http.get(
-      Uri.parse("$baseUrl/bookings/photographer/stats"),
+      Uri.parse("$baseUrl/ph-bookings/photographer/stats"),
       headers: {"Authorization": "Bearer $token"},
     );
     if (res.statusCode == 200 && mounted) {
@@ -205,7 +207,7 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
 
   Future<void> _loadBookings(String token) async {
     final res = await http.get(
-      Uri.parse("$baseUrl/bookings/photographer"),
+      Uri.parse("$baseUrl/ph-bookings/photographer"),
       headers: {"Authorization": "Bearer $token"},
     );
     if (res.statusCode == 200 && mounted) {
@@ -220,7 +222,6 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
     }
   }
 
-  // ── جيب عدد الإشعارات غير المقروءة ──────────────────────────────────────
   Future<void> _loadUnreadCount(String token) async {
     try {
       final res = await http.get(
@@ -238,7 +239,24 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
       }
     } catch (_) {}
   }
+Future<void> _loadUnreadMessagesCount() async {
+  try {
+    final data = await MessageService.getUserConversations();
 
+    int total = 0;
+    for (var conv in data) {
+      total += int.tryParse(conv["unread_count"]?.toString() ?? "0") ?? 0;
+    }
+
+    if (mounted) {
+      setState(() {
+        _unreadMessagesCount = total;
+      });
+    }
+  } catch (e) {
+    debugPrint("Unread messages error: $e");
+  }
+}
   Future<void> logout() async {
     await AuthService.logout();
     if (!mounted) return;
@@ -250,7 +268,6 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -291,7 +308,8 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                   height: 24,
                   decoration: const BoxDecoration(
                     color: lightCream,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                 ),
               ),
@@ -312,7 +330,7 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                   const SizedBox(height: 24),
                   _buildSectionHeader("Quick Actions", Icons.grid_view_rounded),
                   const SizedBox(height: 12),
-                  _buildActionsGrid(name),
+                  _buildActionsGrid(),
                 ]),
               ),
             ),
@@ -324,7 +342,8 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
   }
 
   // ── HEADER ────────────────────────────────────────────────────────────────
-
+  // ملاحظة: أيقونة البروفايل (person_outline) حُذفت من هنا
+  // وأيقونة الحجوزات تغيّرت إلى calendar_month_outlined
   Widget _buildHeader(String name) {
     return Container(
       decoration: const BoxDecoration(
@@ -346,23 +365,26 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.6), width: 2),
                 ),
-                child: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white24,
-                  child: ClipOval(
-                    child: Image.network(
-                      user?["profile_image"] ?? "https://i.pravatar.cc/150",
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      key: ValueKey(user?["profile_image"] ?? "default"),
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.person, color: Colors.white70, size: 30),
-                    ),
-                  ),
-                ),
+          child: CircleAvatar(
+  radius: 28,
+  backgroundColor: Colors.white24,
+  child: ClipOval(
+    child: user?["profile_image"] != null &&
+            (user!["profile_image"] as String).isNotEmpty
+        ? Image.network(
+            user!["profile_image"],
+            width: 56,
+            height: 56,
+            fit: BoxFit.cover,
+            key: ValueKey(user!["profile_image"]),
+            errorBuilder: (_, __, ___) => _buildDefaultAvatar(56),
+          )
+        : _buildDefaultAvatar(56),
+  ),
+),
               ),
               const SizedBox(width: 14),
 
@@ -394,35 +416,59 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                 ),
               ),
 
-              // Action icons
+              // ── Action Icons ──────────────────────────────────────────
+              // التغيير: حُذفت أيقونة البروفايل (person_outline)
+              // التغيير: أيقونة الحجوزات أصبحت calendar_month_outlined
               Row(
                 children: [
-                  // أيقونة الأرباح
-                  GestureDetector(
-                    onTap: () => _showEarningsSheet(),
-                    child: _headerIcon(Icons.account_balance_wallet_outlined),
-                  ),
-                  const SizedBox(width: 8),
+             // أيقونة الحجوزات
+GestureDetector(
+  onTap: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const BookingsScreen(role: 'photographer'),
+    ),
+  ).then((_) => loadUser()), // ← هون الإصلاح
+  child: _headerIcon(Icons.calendar_month_outlined),
+),
+const SizedBox(width: 8),
 
-                  // ── أيقونة الإشعارات مع الـ Badge ──────────────────
-                  GestureDetector(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NotificationsScreen(),
-                        ),
-                      );
-                      // لما يرجع من صفحة الإشعارات، حدّث العداد
-                      final token = await AuthService.getToken();
-                      if (token != null && mounted) _loadUnreadCount(token);
-                    },
-                    child: _notifIconWithBadge(),
-                  ),
+// أيقونة الأرباح
+GestureDetector(
+  onTap: () => _showEarningsSheet(),
+  child: _headerIcon(Icons.account_balance_wallet_outlined),
+),
+const SizedBox(width: 8),
 
+// أيقونة الإشعارات
+GestureDetector(
+  onTap: () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const NotificationsScreen(),
+      ),
+    );
+    if (!mounted) return; // ← إصلاح الـ mounted check
+    final token = await AuthService.getToken();
+    if (token != null && mounted) await _loadUnreadCount(token);
+  },
+  child: _notifIconWithBadge(),
+),
                   const SizedBox(width: 8),
-                  _headerIcon(Icons.chat_bubble_outline),
-                ],
+               // بعد ← مع الربط
+GestureDetector(
+  onTap: () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PhotographerMessagesPage(),
+      ),
+    );
+    await _loadUnreadMessagesCount();
+  },
+  child: _chatIconWithBadge(),
+),             ],
               ),
             ],
           ),
@@ -431,21 +477,52 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
     );
   }
 
-  Widget _headerIcon(IconData icon) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: Colors.white, size: 20),
-    );
-  }
+  Widget _headerIcon(IconData icon) => Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      );
 
-  // ── أيقونة الإشعارات مع Badge ─────────────────────────────────────────────
-  Widget _notifIconWithBadge() {
-    return Stack(
+  Widget _notifIconWithBadge() => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.notifications_none_outlined,
+                color: Colors.white, size: 20),
+          ),
+          if (_unreadCount > 0)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: const BoxDecoration(
+                    color: _red, shape: BoxShape.circle),
+                child: Center(
+                  child: Text(
+                    _unreadCount > 9 ? '9+' : '$_unreadCount',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+Widget _chatIconWithBadge() => Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
@@ -456,13 +533,12 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
             shape: BoxShape.circle,
           ),
           child: const Icon(
-            Icons.notifications_none_outlined,
+            Icons.chat_bubble_outline,
             color: Colors.white,
             size: 20,
           ),
         ),
-        // Badge - يظهر بس لو في إشعارات غير مقروءة
-        if (_unreadCount > 0)
+        if (_unreadMessagesCount > 0)
           Positioned(
             right: -2,
             top: -2,
@@ -470,12 +546,12 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
               width: 18,
               height: 18,
               decoration: const BoxDecoration(
-                color: _red,
+                color: Colors.red,
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
-                  _unreadCount > 9 ? '9+' : '$_unreadCount',
+                  _unreadMessagesCount > 9 ? '9+' : '$_unreadMessagesCount',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -487,10 +563,7 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
           ),
       ],
     );
-  }
-
-  // ── EARNINGS BOTTOM SHEET ─────────────────────────────────────────────────
-
+  // ── EARNINGS SHEET ────────────────────────────────────────────────────────
   void _showEarningsSheet() {
     showModalBottomSheet(
       context: context,
@@ -506,8 +579,7 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
-              height: 4,
+              width: 40, height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
                 color: _grey.withOpacity(0.3),
@@ -516,15 +588,12 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
             ),
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                'Earnings Overview',
-                style: TextStyle(
-                  color: _dark,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Playfair',
-                ),
-              ),
+              child: Text('Earnings Overview',
+                  style: TextStyle(
+                      color: _dark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Playfair')),
             ),
             const SizedBox(height: 16),
             Container(
@@ -539,32 +608,27 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: _green.withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
+                      color: _green.withOpacity(0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6)),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Total Earned',
-                    style: TextStyle(
-                      color: _white.withOpacity(0.65),
-                      fontSize: 13,
-                      fontFamily: 'Playfair',
-                    ),
-                  ),
+                  Text('Total Earned',
+                      style: TextStyle(
+                          color: _white.withOpacity(0.65),
+                          fontSize: 13,
+                          fontFamily: 'Playfair')),
                   const SizedBox(height: 6),
                   Text(
                     '\$${_earnings.totalEarned.toStringAsFixed(0)}',
                     style: const TextStyle(
-                      color: _white,
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Playfair',
-                    ),
+                        color: _white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Playfair'),
                   ),
                 ],
               ),
@@ -573,44 +637,36 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
             Row(
               children: [
                 Expanded(
-                  child: _earningDetailCard(
-                    'Deposits\nCollected',
-                    '\$${_earnings.totalDeposits.toStringAsFixed(0)}',
-                    Icons.payments_outlined,
-                    _gold,
-                  ),
-                ),
+                    child: _earningDetailCard(
+                        'Deposits\nCollected',
+                        '\$${_earnings.totalDeposits.toStringAsFixed(0)}',
+                        Icons.payments_outlined,
+                        _gold)),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _earningDetailCard(
-                    'Completed\nSessions',
-                    '${_earnings.completedBookings}',
-                    Icons.task_alt_rounded,
-                    _green,
-                  ),
-                ),
+                    child: _earningDetailCard(
+                        'Completed\nSessions',
+                        '${_earnings.completedBookings}',
+                        Icons.task_alt_rounded,
+                        _green)),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: _earningDetailCard(
-                    'Confirmed\nBookings',
-                    '${_earnings.confirmedBookings}',
-                    Icons.event_available_outlined,
-                    _greenSoft,
-                  ),
-                ),
+                    child: _earningDetailCard(
+                        'Confirmed\nBookings',
+                        '${_earnings.confirmedBookings}',
+                        Icons.event_available_outlined,
+                        _greenSoft)),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _earningDetailCard(
-                    'Pending\nRequests',
-                    '${_earnings.pendingBookings}',
-                    Icons.hourglass_empty_rounded,
-                    _gold,
-                  ),
-                ),
+                    child: _earningDetailCard(
+                        'Pending\nRequests',
+                        '${_earnings.pendingBookings}',
+                        Icons.hourglass_empty_rounded,
+                        _gold)),
               ],
             ),
             const SizedBox(height: 20),
@@ -620,8 +676,8 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const BookingsScreen(role: 'photographer'),
-                  ),
+                      builder: (_) =>
+                          const BookingsScreen(role: 'photographer')),
                 );
               },
               child: Container(
@@ -632,10 +688,9 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: _green.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
+                        color: _green.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4)),
                   ],
                 ),
                 child: const Row(
@@ -643,15 +698,12 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                   children: [
                     Icon(Icons.event_note_outlined, color: _white, size: 18),
                     SizedBox(width: 8),
-                    Text(
-                      'View All Bookings',
-                      style: TextStyle(
-                        color: _white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Playfair',
-                      ),
-                    ),
+                    Text('View All Bookings',
+                        style: TextStyle(
+                            color: _white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Playfair')),
                   ],
                 ),
               ),
@@ -671,17 +723,15 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+              color: color.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 36, height: 36,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
@@ -693,24 +743,18 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Playfair',
-                  ),
-                ),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: _grey,
-                    fontSize: 10,
-                    fontFamily: 'Playfair',
-                    height: 1.3,
-                  ),
-                ),
+                Text(value,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Playfair')),
+                Text(label,
+                    style: const TextStyle(
+                        color: _grey,
+                        fontSize: 10,
+                        fontFamily: 'Playfair',
+                        height: 1.3)),
               ],
             ),
           ),
@@ -720,7 +764,6 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
   }
 
   // ── COMPLETION CARD ───────────────────────────────────────────────────────
-
   Widget _buildCompletionCard(int completion, String suggestion) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -729,10 +772,9 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: primaryGreen.withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
+              color: primaryGreen.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -744,8 +786,7 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
               Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 36, height: 36,
                     decoration: BoxDecoration(
                       color: primaryGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
@@ -754,32 +795,27 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                         color: primaryGreen, size: 20),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    "Profile Completion",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Playfair',
-                      color: Color(0xFF1E1E1E),
-                    ),
-                  ),
+                  const Text("Profile Completion",
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Playfair',
+                          color: Color(0xFF1E1E1E))),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: primaryGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  "$completion%",
-                  style: const TextStyle(
-                    color: primaryGreen,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Playfair',
-                    fontSize: 13,
-                  ),
-                ),
+                child: Text("$completion%",
+                    style: const TextStyle(
+                        color: primaryGreen,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Playfair',
+                        fontSize: 13)),
               ),
             ],
           ),
@@ -790,17 +826,19 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
               value: completion / 100,
               minHeight: 8,
               backgroundColor: const Color(0xFFE8F0EE),
-              valueColor: const AlwaysStoppedAnimation<Color>(primaryGreen),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(primaryGreen),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            completion == 100 ? "Your profile is complete 🎉" : suggestion,
+            completion == 100
+                ? "Your profile is complete 🎉"
+                : suggestion,
             style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF8A8A8A),
-              fontFamily: 'Playfair',
-            ),
+                fontSize: 12,
+                color: Color(0xFF8A8A8A),
+                fontFamily: 'Playfair'),
           ),
         ],
       ),
@@ -808,36 +846,25 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
   }
 
   // ── STATS ROW ─────────────────────────────────────────────────────────────
-
   Widget _buildStatsRow() {
     return Row(
       children: [
         Expanded(
-          child: _statCard(
-            '${_earnings.confirmedBookings}',
-            'Upcoming\nBookings',
-            Icons.event_available,
-            const Color(0xFF2F4F46),
-          ),
-        ),
+            child: _statCard('${_earnings.confirmedBookings}',
+                'Upcoming\nBookings', Icons.event_available,
+                const Color(0xFF2F4F46))),
         const SizedBox(width: 12),
         Expanded(
-          child: _statCard(
-            '${_earnings.totalBookings}',
-            'Total\nSessions',
-            Icons.camera_alt_outlined,
-            const Color(0xFFD4A853),
-          ),
-        ),
+            child: _statCard('${_earnings.totalBookings}',
+                'Total\nSessions', Icons.camera_alt_outlined,
+                const Color(0xFFD4A853))),
         const SizedBox(width: 12),
         Expanded(
-          child: _statCard(
-            '\$${_earnings.totalEarned.toStringAsFixed(0)}',
-            'Total\nEarned',
-            Icons.account_balance_wallet_outlined,
-            const Color(0xFFB84040),
-          ),
-        ),
+            child: _statCard(
+                '\$${_earnings.totalEarned.toStringAsFixed(0)}',
+                'Total\nEarned',
+                Icons.account_balance_wallet_outlined,
+                const Color(0xFFB84040))),
       ],
     );
   }
@@ -850,65 +877,54 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+              color: color.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: value.length > 5 ? 14 : 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Playfair',
-              color: color,
-            ),
-          ),
+          Text(value,
+              style: TextStyle(
+                  fontSize: value.length > 5 ? 14 : 20,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Playfair',
+                  color: color)),
           const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF8A8A8A),
-              fontFamily: 'Playfair',
-              height: 1.3,
-            ),
-          ),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF8A8A8A),
+                  fontFamily: 'Playfair',
+                  height: 1.3)),
         ],
       ),
     );
   }
 
   // ── SECTION HEADER ────────────────────────────────────────────────────────
-
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
         Icon(icon, color: primaryGreen, size: 18),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            fontFamily: 'Playfair',
-            color: Color(0xFF1E1E1E),
-          ),
-        ),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Playfair',
+                color: Color(0xFF1E1E1E))),
         const Spacer(),
-        const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF8A8A8A)),
+        const Icon(Icons.arrow_forward_ios,
+            size: 14, color: Color(0xFF8A8A8A)),
       ],
     );
   }
 
   // ── TODAY'S SCHEDULE ──────────────────────────────────────────────────────
-
   Widget _buildTodaySchedule() {
     if (_todaySchedule.isEmpty) {
       return Container(
@@ -918,17 +934,15 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: _green.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
+                color: _green.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 3)),
           ],
         ),
         child: const Center(
-          child: Text(
-            'No sessions scheduled for today',
-            style: TextStyle(color: _grey, fontSize: 13, fontFamily: 'Playfair'),
-          ),
+          child: Text('No sessions scheduled for today',
+              style: TextStyle(
+                  color: _grey, fontSize: 13, fontFamily: 'Playfair')),
         ),
       );
     }
@@ -955,17 +969,15 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3)),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 42, height: 42,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
@@ -977,30 +989,23 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.sessionType,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    fontFamily: 'Playfair',
-                    color: Color(0xFF1E1E1E),
-                  ),
-                ),
+                Text(item.sessionType,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        fontFamily: 'Playfair',
+                        color: Color(0xFF1E1E1E))),
                 const SizedBox(height: 2),
-                Text(
-                  '${item.formattedTime} · ${item.clientName}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF8A8A8A),
-                    fontFamily: 'Playfair',
-                  ),
-                ),
+                Text('${item.formattedTime} · ${item.clientName}',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF8A8A8A),
+                        fontFamily: 'Playfair')),
               ],
             ),
           ),
           Container(
-            width: 8,
-            height: 8,
+            width: 8, height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
         ],
@@ -1009,37 +1014,22 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
   }
 
   // ── ACTIONS GRID ──────────────────────────────────────────────────────────
-
-  Widget _buildActionsGrid(String name) {
+  Widget _buildActionsGrid() {
     final actions = [
       _ActionItem(Icons.event_available_outlined, "Availability",
           const Color(0xFF2F4F46), () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AvailabilityScreen()),
-        );
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const AvailabilityScreen()));
       }),
-      _ActionItem(Icons.chat_bubble_outline, "Chats",
-          const Color(0xFFD4A853), null),
+      // بعد ← مع الربط
+_ActionItem(Icons.chat_bubble_outline, "Chats",
+    const Color(0xFFD4A853), () {
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => const PhotographerMessagesPage(),
+  ));
+}),
       _ActionItem(Icons.storefront_outlined, "Store",
           const Color(0xFF5B8A7A), null),
-      _ActionItem(Icons.person_outline, "Edit Profile",
-          const Color(0xFF3E6B5C), () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CreateEditProfileScreen(
-              isEdit:       photographerProfile != null,
-              currentData:  photographerProfile,
-              profileImage: user?["profile_image"],
-              fullName:     user?["full_name"] ?? "Photographer",
-            ),
-          ),
-        );
-        if (result is Map && result["updated"] == true) {
-          await loadUser();
-        }
-      }),
       _ActionItem(Icons.logout_outlined, "Logout",
           const Color(0xFFB84040), logout),
     ];
@@ -1074,18 +1064,16 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.08),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
+                  color: color.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4)),
             ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(14),
@@ -1093,18 +1081,15 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                 child: Icon(icon, color: color, size: 22),
               ),
               const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Playfair',
-                  color: color == const Color(0xFFB84040)
-                      ? color
-                      : const Color(0xFF1E1E1E),
-                ),
-              ),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Playfair',
+                      color: color == const Color(0xFFB84040)
+                          ? color
+                          : const Color(0xFF1E1E1E))),
             ],
           ),
         ),
@@ -1113,22 +1098,23 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
   }
 
   // ── BOTTOM NAV ────────────────────────────────────────────────────────────
-
+  // التغيير: أُضيف تبويب Profile (index 4) وحُذفت أيقونة البروفايل من الهيدر
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4)),
         ],
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(24)),
         child: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           currentIndex: _currentIndex,
@@ -1137,27 +1123,31 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
           backgroundColor: Colors.white,
           elevation: 0,
           selectedLabelStyle: const TextStyle(
-            fontFamily: 'Playfair',
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontFamily: 'Playfair',
-            fontSize: 11,
-          ),
+              fontFamily: 'Playfair',
+              fontSize: 11,
+              fontWeight: FontWeight.w600),
+          unselectedLabelStyle:
+              const TextStyle(fontFamily: 'Playfair', fontSize: 11),
           onTap: (index) {
             if (index == 1) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PortfolioViewScreen()),
-              );
+              Navigator.push(context,
+                  MaterialPageRoute(
+                      builder: (_) => const PortfolioViewScreen()));
               return;
             }
             if (index == 2) {
+              Navigator.push(context,
+                  MaterialPageRoute(
+                      builder: (_) => const AvailabilityScreen()));
+              return;
+            }
+            if (index == 4) {
+              // تبويب البروفايل — يفتح صفحة البروفايل ثم يُحدّث الداشبورد
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const AvailabilityScreen()),
-              );
+                MaterialPageRoute(
+                    builder: (_) => const PhotographerProfilePage()),
+              ).then((_) => loadUser());
               return;
             }
             setState(() => _currentIndex = index);
@@ -1179,15 +1169,31 @@ class _PhotographerDashboardState extends State<PhotographerDashboard>
                 icon: Icon(Icons.people_outline),
                 activeIcon: Icon(Icons.people),
                 label: "Community"),
+            // التغيير: تبويب البروفايل الجديد
             BottomNavigationBarItem(
-                icon: Icon(Icons.store_outlined),
-                activeIcon: Icon(Icons.store),
-                label: "Store"),
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: "Profile"),
           ],
         ),
       ),
     );
   }
+
+
+
+  Widget _buildDefaultAvatar(double size) {
+  return Container(
+    width: size,
+    height: size,
+    color: const Color(0xFFBDBDBD),
+    child: Icon(
+      Icons.person,
+      color: const Color(0xFF757575),
+      size: size * 0.55,
+    ),
+  );
+}
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
