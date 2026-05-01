@@ -1,49 +1,69 @@
+require('dotenv').config();
 const express = require('express');
 const pool = require('./config/db');
-require('dotenv').config();
 const userModel = require("./model/userModel");
+
+// Auth & shared
 const authRoutes = require('./route/authRoutes');
 const photographerRoutes = require("./route/photographerRoutes");
+
+// Venue-side routes
 const photographerPortfolioRoutes = require("./route/photographerPortfolioRoutes");
 const portfolioItemsRoutes = require("./route/portfolioItemsRoutes");
 const venueRoutes = require("./route/venueRoutes");
 const availabilityRoutes = require("./route/availabilityRoutes");
 const bookingRoutes = require("./route/bookingRoutes");
-const dashboardRoutes_venue = require("./route/dashboardRoutes-venue")
-const uploadRoutes = require("./route/uploadRoutes");
+const dashboardRoutes_venue = require("./route/dashboardRoutes-venue");
 const settingsRoutes = require("./route/venuesettingsRoutes");
 const reviewRoutes = require("./route/VenueratingRoutes");
 const venueImageRoutes = require("./route/venueImageRoutes");
-const notificationRoutes =require("./route/venueNotificationRoutes");
-const venuefavoriteRoutes =require("./route/venuefavoriteRoute");
-const messagesRoutes=require("./route/messagesRoute");
+const venuefavoriteRoutes = require("./route/venuefavoriteRoute");
+const messagesRoutes = require("./route/messagesRoute");
 const stripeRoutes = require("./route/stripeRoute");
 const userRoutes = require("./route/userRoutes");
-const ReportRoutes =require("./route/ReportRoutes");
+const ReportRoutes = require("./route/ReportRoutes");
+
+// Photographer-side routes
+const portfolioRoutes = require("./route/portfolioRoutes");
+const uploadRoutes = require("./route/uploadRoutes");
+const photogragher_bookingRoutes = require("./route/Photogragher_BookingRoutes");
+const notificationRoutes = require("./route/notificationRoutes");
+const photogragher_availabilityRoutes = require("./route/photoghragher_availabilityRoutes");
+
+// Booking controller (للكلاينت)
+const auth = require("./middleware/authMiddleware");
+const bookingCtrl = require("./controller/bookingController");
+
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const app = express();
 
 const http = require("http");
-const {Server} = require("socket.io");
+const { Server } = require("socket.io");
 
+const app = express();
 const server = http.createServer(app);
-
-
-
 
 
 // CORS
 app.use(cors({
   origin: "*",
-  methods: ["GET","POST","PUT","DELETE"],
-  allowedHeaders: ["Content-Type","Authorization"]
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((err, req, res, next) => {
+  console.log("GLOBAL ERROR:", JSON.stringify(err, null, 2));
+  res.status(500).json({ error: err.message });
+});
 
-// ROUTES
+
+const { startReminderJob } = require('./utils/reminderJob');
+startReminderJob();
+
+
+// ── VENUE-SIDE ROUTES ──────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use("/api/photographer", photographerRoutes);
 app.use("/api/photographer-portfolio", photographerPortfolioRoutes);
@@ -51,17 +71,43 @@ app.use("/api/portfolio-items", portfolioItemsRoutes);
 app.use("/api", venueRoutes);
 app.use("/api", availabilityRoutes);
 app.use("/api", bookingRoutes);
-app.use("/api",dashboardRoutes_venue);
-app.use("/api",uploadRoutes);
-app.use("/api",settingsRoutes);
+app.use("/api", dashboardRoutes_venue);
+app.use("/api", uploadRoutes);
+app.use("/api", settingsRoutes);
 app.use("/api", reviewRoutes);
-app.use("/api",venueImageRoutes);
-app.use("/api",venuefavoriteRoutes)
-app.use("/api",notificationRoutes);
-app.use("/api",messagesRoutes);
+app.use("/api", venueImageRoutes);
+app.use("/api", venuefavoriteRoutes);
+app.use("/api", messagesRoutes);
 app.use("/api", stripeRoutes);
-app.use("/api",ReportRoutes)
-app.use("/api", userRoutes);
+app.use("/api", ReportRoutes);
+
+
+// ── PHOTOGRAPHER-SIDE ROUTES ───────────────────────────────
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/ph-bookings", photogragher_bookingRoutes);
+app.use("/api/portfolio", portfolioRoutes);
+app.use("/api/availability", photogragher_availabilityRoutes)
+app.use("/api/users", userRoutes);
+
+// BOOKING ROUTES - للكلاينت
+app.post("/api/bookings",                 auth, bookingCtrl.createBooking);
+app.get("/api/bookings/client",           auth, bookingCtrl.getClientBookings);
+app.get("/api/bookings/owner",            auth, bookingCtrl.getOwnerBookings);
+app.put("/api/bookings/:id/status",       auth, bookingCtrl.updateStatus);
+app.put("/api/bookings/:id/cancel",       auth, bookingCtrl.cancelBooking);
+app.put("/api/bookings/:id/pay-deposit",  auth, bookingCtrl.payDeposit);
+app.put("/api/bookings/:id/complete",     auth, bookingCtrl.markAsCompleted);
+app.put("/api/bookings/:id/owner-cancel", auth, bookingCtrl.ownerCancelBooking);
+app.get("/api/bookings/unseen-count",     auth, bookingCtrl.getUnseenCount);
+app.put("/api/bookings/mark-seen",        auth, bookingCtrl.markBookingsSeen);
+
+// ── UPLOAD DIRECT ROUTE ────────────────────────────────────
+app.post("/api/upload", (req, res) => {
+  res.json({ message: "UPLOAD DIRECT ROUTE WORKING" });
+});
+
+
+// ── DATABASE CONNECTION TEST ───────────────────────────────
 (async () => {
   try {
     const [rows] = await pool.query('SELECT NOW() AS currentTime');
@@ -71,7 +117,14 @@ app.use("/api", userRoutes);
   }
 })();
 
-// RESET PASSWORD PAGE
+
+// ── TEST ROUTE ─────────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.send("API running");
+});
+
+
+// ── RESET PASSWORD PAGE ────────────────────────────────────
 app.get("/reset-password", (req, res) => {
 
   const token = req.query.token;
@@ -204,6 +257,8 @@ Reset Password
 
 });
 
+
+// ── RESET PASSWORD LOGIC ───────────────────────────────────
 app.post("/reset-password", async (req, res) => {
 
   try {
@@ -243,21 +298,20 @@ app.post("/reset-password", async (req, res) => {
 
 });
 
-app.post("/api/upload", (req, res) => {
-  res.json({
-    message: "UPLOAD DIRECT ROUTE WORKING"
-  });
-});
-const io = new Server(server,{
-cors:{origin:"*"}
+
+// ── SOCKET.IO ──────────────────────────────────────────────
+const io = new Server(server, {
+  cors: { origin: "*" }
 });
 
 global.io = io;
 
-io.on("connection",(socket)=>{
-console.log("User connected:",socket.id);
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
 });
-// START SERVER
+
+
+// ── START SERVER ───────────────────────────────────────────
 app.listen(3000, "0.0.0.0", () => {
   console.log("Server running on port 3000");
 });

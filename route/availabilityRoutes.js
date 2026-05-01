@@ -4,7 +4,6 @@ const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 const venueAvailability = require("../controller/venueavailabilityController");
-const photographerAvailability = require("../controller/photographerAvailabilityController");
 
 router.post(
 "/venue-availability",
@@ -26,18 +25,10 @@ authMiddleware,
 roleMiddleware(["venue_owner"]),
 venueAvailability.updateAvailability
 );
-router.post("/availability/bulk", authMiddleware, 
+router.post("/venue-availability/bulk", authMiddleware, 
     roleMiddleware(["venue_owner"]), 
     venueAvailability.bulkAddAvailability);
 
-router.post(
-"/photographer-availability",
-authMiddleware,roleMiddleware(["photographer"]),
-photographerAvailability.addAvailability
-);
-
-router.get("/photographer-availability/:photographerId",
-photographerAvailability.getAvailability);
 
 
 
