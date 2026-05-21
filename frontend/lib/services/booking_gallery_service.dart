@@ -471,28 +471,21 @@ static Future<Map<String, dynamic>> createShareLink({
   bool allowDownload = false,
   int expiresInDays = 7,
 }) async {
-  final token = await AuthService.getToken();
-
-  if (token == null) {
-    throw Exception("You are not logged in.");
-  }
-
   final body = {
     "allow_download": allowDownload ? 1 : 0,
     "expires_in_days": expiresInDays,
   };
 
   final res = await http.post(
-    Uri.parse("$baseUrl/booking-galleries/$galleryId/share-link"),
+    Uri.parse("$baseUrl/booking-galleries/$galleryId/share-link-demo"),
     headers: {
-      "Authorization": "Bearer $token",
       "Content-Type": "application/json",
     },
     body: jsonEncode(body),
   );
 
-  debugPrint("CREATE SHARE LINK STATUS: ${res.statusCode}");
-  debugPrint("CREATE SHARE LINK RESPONSE: ${res.body}");
+  debugPrint("CREATE SHARE LINK DEMO STATUS: ${res.statusCode}");
+  debugPrint("CREATE SHARE LINK DEMO RESPONSE: ${res.body}");
 
   final data = _decode(res.body);
 
@@ -504,7 +497,6 @@ static Future<Map<String, dynamic>> createShareLink({
     data["error"] ?? data["message"] ?? "Failed to create share link.",
   );
 }
-
   static Future<Map<String, dynamic>> getSharedGallery(String token) async {
     final res = await http.get(
       Uri.parse("$baseUrl/booking-galleries/shared/$token"),
