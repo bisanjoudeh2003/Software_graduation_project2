@@ -2028,7 +2028,80 @@ exports.createShareLink = async (req, res) => {
     });
   }
 };
+exports.createShareLinkDemo = async (req, res) => {
+  try {
+    const { galleryId } = req.params;
+    const { allow_download, expires_in_days } = req.body;
 
+    const baseUrl = process.env.PUBLIC_APP_URL;
+
+    if (!baseUrl) {
+      return res.status(500).json({
+        message: "PUBLIC_APP_URL is not configured on the server.",
+      });
+    }
+
+    const gallery = await bookingGalleryModel.getGalleryById(galleryId);
+
+    if (!gallery) {
+      return res.status(404).json({
+        message: "Gallery not found.",
+      });
+    }
+
+    if (gallery.status !== "finalized") {
+      return res.status(400).json({
+        message: "Only finalized galleries can be shared.",
+      });
+    }
+
+    const remainingAmount = Number(gallery.remaining_amount || 0);
+    const remainingPaid = Number(gallery.remaining_paid || 0) === 1;
+
+    if (remainingAmount > 0 && !remainingPaid) {
+      return res.status(400).json({
+        message: "Please pay the remaining balance before sharing this gallery.",
+      });
+    }
+
+    const days = Number(expires_in_days || 7);
+    const safeDays = [7, 14, 30, 60].includes(days) ? days : 7;
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + safeDays);
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    const requestedAllowDownload = isTruthy(allow_download);
+    const finalAllowDownload =
+      requestedAllowDownload && Number(gallery.allow_download) === 1;
+
+    const result = await bookingGalleryModel.createGalleryShareLink({
+      gallery_id: gallery.id,
+      client_id: gallery.client_id || null,
+      token,
+      allow_download: finalAllowDownload,
+      expires_at: expiresAt,
+    });
+
+    return res.status(201).json({
+      message: "Share link created successfully.",
+      share: {
+        id: result.insertId,
+        token,
+        expires_at: expiresAt,
+        allow_download: finalAllowDownload,
+      },
+      share_url: `${baseUrl}/#/shared-gallery/${token}`,
+    });
+  } catch (err) {
+    console.error("createShareLinkDemo error:", err);
+    return res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
 exports.getSharedGallery = async (req, res) => {
   try {
     const { token } = req.params;

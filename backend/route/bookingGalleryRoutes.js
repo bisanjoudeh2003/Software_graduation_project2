@@ -247,4 +247,12 @@ router.post(
   bookingGalleryController.confirmRemainingPayment
 );
 
+
+// FOR demo shared gallery without token
+router.post(
+  "/:galleryId/share-link-demo",
+  bookingGalleryController.createShareLinkDemo
+);
+
+
 module.exports = router;
