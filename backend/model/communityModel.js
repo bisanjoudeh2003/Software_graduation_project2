@@ -1,12 +1,17 @@
 const db = require("../config/db");
 
+const approvedPostCondition = `
+  cp.is_hidden = 0
+  AND COALESCE(cp.approval_status, 'pending') = 'approved'
+`;
+
 exports.getPosts = async ({
   userId,
   category,
   search,
   sort,
 }) => {
-  const conditions = ["cp.is_hidden = 0"];
+  const conditions = [approvedPostCondition];
   const params = [];
 
   if (category && category !== "all") {
@@ -73,6 +78,65 @@ exports.getPosts = async ({
   return rows;
 };
 
+exports.getMyPosts = async (userId) => {
+  const [rows] = await db.query(
+    `
+    SELECT
+      cp.*,
+
+      u.id AS photographer_user_id,
+      u.full_name AS photographer_name,
+      u.email AS photographer_email,
+      u.profile_image AS photographer_profile_image,
+      u.role AS photographer_role,
+
+      reviewer.full_name AS reviewed_by_name,
+
+      COUNT(DISTINCT cpl.id) AS likes_count,
+      COUNT(DISTINCT cps.id) AS saves_count,
+      COUNT(DISTINCT cc.id) AS comments_count,
+      COUNT(DISTINCT cr.id) AS reports_count,
+      COUNT(DISTINCT cpm.id) AS media_count,
+
+      MAX(CASE WHEN my_like.id IS NOT NULL THEN 1 ELSE 0 END) AS is_liked,
+      MAX(CASE WHEN my_save.id IS NOT NULL THEN 1 ELSE 0 END) AS is_saved
+
+    FROM community_posts cp
+    JOIN users u ON cp.photographer_id = u.id
+
+    LEFT JOIN users reviewer ON reviewer.id = cp.reviewed_by
+
+    LEFT JOIN community_post_likes cpl ON cp.id = cpl.post_id
+    LEFT JOIN community_post_saves cps ON cp.id = cps.post_id
+    LEFT JOIN community_comments cc ON cp.id = cc.post_id AND cc.is_hidden = 0
+    LEFT JOIN community_reports cr ON cp.id = cr.post_id
+    LEFT JOIN community_post_media cpm ON cp.id = cpm.post_id
+
+    LEFT JOIN community_post_likes my_like
+      ON cp.id = my_like.post_id AND my_like.user_id = ?
+
+    LEFT JOIN community_post_saves my_save
+      ON cp.id = my_save.post_id AND my_save.user_id = ?
+
+    WHERE cp.photographer_id = ?
+
+    GROUP BY cp.id
+    ORDER BY
+      CASE
+        WHEN COALESCE(cp.approval_status, 'pending') = 'pending' THEN 1
+        WHEN cp.approval_status = 'rejected' THEN 2
+        WHEN cp.approval_status = 'approved' AND cp.is_hidden = 1 THEN 3
+        WHEN cp.approval_status = 'approved' THEN 4
+        ELSE 5
+      END,
+      cp.created_at DESC
+    `,
+    [userId, userId, userId]
+  );
+
+  return rows;
+};
+
 exports.getPostById = async (postId, userId) => {
   const [[post]] = await db.query(
     `
@@ -107,6 +171,7 @@ exports.getPostById = async (postId, userId) => {
 
     WHERE cp.id = ?
       AND cp.is_hidden = 0
+      AND COALESCE(cp.approval_status, 'pending') = 'approved'
 
     GROUP BY cp.id
     LIMIT 1
@@ -136,9 +201,11 @@ exports.createPost = async ({
       category,
       media_url,
       media_type,
-      is_question
+      is_question,
+      approval_status,
+      is_hidden
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0)
     `,
     [
       photographerId,
@@ -268,6 +335,7 @@ exports.getSavedPosts = async (userId) => {
 
     WHERE cps.user_id = ?
       AND cp.is_hidden = 0
+      AND COALESCE(cp.approval_status, 'pending') = 'approved'
 
     GROUP BY cp.id
     ORDER BY cps.created_at DESC
@@ -288,8 +356,11 @@ exports.getComments = async (postId) => {
       u.role AS user_role
     FROM community_comments cc
     JOIN users u ON cc.user_id = u.id
+    JOIN community_posts cp ON cp.id = cc.post_id
     WHERE cc.post_id = ?
       AND cc.is_hidden = 0
+      AND cp.is_hidden = 0
+      AND COALESCE(cp.approval_status, 'pending') = 'approved'
     ORDER BY cc.created_at ASC
     `,
     [postId]
@@ -349,9 +420,33 @@ exports.reportPost = async (postId, reporterId, reason) => {
 exports.checkPostExists = async (postId) => {
   const [[post]] = await db.query(
     `
-    SELECT id, photographer_id, is_hidden
+    SELECT
+      id,
+      photographer_id,
+      is_hidden,
+      COALESCE(approval_status, 'pending') AS approval_status
     FROM community_posts
     WHERE id = ?
+    LIMIT 1
+    `,
+    [postId]
+  );
+
+  return post;
+};
+
+exports.checkApprovedPostExists = async (postId) => {
+  const [[post]] = await db.query(
+    `
+    SELECT
+      id,
+      photographer_id,
+      is_hidden,
+      COALESCE(approval_status, 'pending') AS approval_status
+    FROM community_posts
+    WHERE id = ?
+      AND is_hidden = 0
+      AND COALESCE(approval_status, 'pending') = 'approved'
     LIMIT 1
     `,
     [postId]
@@ -459,6 +554,7 @@ exports.getVideoPosts = async (userId) => {
       ON cp.id = my_save.post_id AND my_save.user_id = ?
 
     WHERE cp.is_hidden = 0
+      AND COALESCE(cp.approval_status, 'pending') = 'approved'
       AND cpm.media_type = 'video'
 
     GROUP BY cp.id, cpm.id

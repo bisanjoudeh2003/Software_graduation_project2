@@ -127,7 +127,9 @@ async function getCartRows(userId) {
     JOIN users u ON p.warehouse_owner_id = u.id
     WHERE ci.user_id = ?
       AND p.is_active = 1
-      AND p.status != 'hidden'
+AND p.status != 'hidden'
+AND p.admin_visibility = 'visible'
+AND p.product_reviewed = 1
     ORDER BY ci.id DESC
     `,
     [userId]
@@ -191,16 +193,18 @@ exports.addToCart = async (req, res) => {
     }
 
     const [[product]] = await db.query(
-      `
-      SELECT *
-      FROM warehouse_products
-      WHERE id = ?
-        AND is_active = 1
-        AND status != 'hidden'
-      LIMIT 1
-      `,
-      [productId]
-    );
+  `
+  SELECT *
+  FROM warehouse_products
+  WHERE id = ?
+    AND is_active = 1
+    AND status != 'hidden'
+    AND admin_visibility = 'visible'
+    AND product_reviewed = 1
+  LIMIT 1
+  `,
+  [productId]
+);
 
     if (!product) {
       return res.status(404).json({
@@ -494,7 +498,9 @@ exports.createOrdersFromCart = async (req, res) => {
       JOIN warehouse_products p ON ci.product_id = p.id
       WHERE ci.user_id = ?
         AND p.is_active = 1
-        AND p.status != 'hidden'
+AND p.status != 'hidden'
+AND p.admin_visibility = 'visible'
+AND p.product_reviewed = 1
       ORDER BY p.warehouse_owner_id ASC, ci.id ASC
       `,
       [userId]

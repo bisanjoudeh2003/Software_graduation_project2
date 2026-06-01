@@ -182,3 +182,17 @@ exports.isParticipant = async (conversationId, userId) => {
 
   return rows.length > 0;
 };
+
+exports.getSupportAdmin = async () => {
+  const [rows] = await pool.query(
+    `
+    SELECT id, full_name, profile_image, role
+    FROM users
+    WHERE role = 'admin'
+    ORDER BY id ASC
+    LIMIT 1
+    `
+  );
+
+  return rows[0] || null;
+};

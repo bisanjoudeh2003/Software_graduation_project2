@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import '../services/dashboard_service_venue.dart';
 import '../services/auth_service.dart';
@@ -28,6 +30,8 @@ class VenueOwnerHome extends StatefulWidget {
 
 class _VenueOwnerHomeState extends State<VenueOwnerHome> {
   Map dashboard = {};
+  List ownerVenues = [];
+
   bool loading = true;
   int unreadMsgs = 0;
   int unreadNotifications = 0;
@@ -38,6 +42,7 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
   void initState() {
     super.initState();
     loadDashboard();
+
     _timer = Timer.periodic(
       const Duration(seconds: 10),
       (_) => loadBadges(),
@@ -48,6 +53,47 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  bool _boolValue(dynamic value) {
+    return value == true ||
+        value == 1 ||
+        value == "1" ||
+        value?.toString() == "true";
+  }
+
+  String _cleanText(dynamic value, {String fallback = ""}) {
+    if (value == null) return fallback;
+
+    final text = value.toString().trim();
+
+    if (text.isEmpty || text == "null") return fallback;
+
+    return text;
+  }
+
+  int get venuesNeedingAttentionCount {
+    int count = 0;
+
+    for (final venue in ownerVenues) {
+      final visibility = _cleanText(
+        venue["admin_visibility"],
+        fallback: "hidden",
+      );
+
+      final reviewed = _boolValue(venue["venue_reviewed"]);
+      final flagged = _boolValue(venue["venue_flagged"]);
+
+      if (visibility != "visible" || !reviewed || flagged) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  bool get hasVenueReviewWarning {
+    return venuesNeedingAttentionCount > 0;
   }
 
   Future<void> loadDashboard() async {
@@ -62,11 +108,13 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
       }
 
       final data = await DashboardService.getDashboard(token);
+      final venues = await _loadOwnerVenues(token);
 
       if (!mounted) return;
 
       setState(() {
         dashboard = data;
+        ownerVenues = venues;
         loading = false;
       });
 
@@ -75,6 +123,33 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
       if (mounted) {
         setState(() => loading = false);
       }
+    }
+  }
+
+  Future<List> _loadOwnerVenues(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse("${AuthService.apiBase}/venues/owner"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode != 200) return [];
+
+      final data = jsonDecode(response.body);
+
+      if (data is List) return data;
+
+      if (data is Map && data["venues"] is List) {
+        return data["venues"];
+      }
+
+      return [];
+    } catch (e) {
+      debugPrint("LOAD OWNER VENUES ERROR: $e");
+      return [];
     }
   }
 
@@ -106,6 +181,19 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _openMyVenues() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MyVenuesPage(),
+      ),
+    );
+
+    if (!mounted) return;
+
+    loadDashboard();
   }
 
   Widget _badgeIcon(
@@ -172,208 +260,66 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-
       bottomNavigationBar: const VenueOwnerBottomNav(currentIndex: 0),
-
       floatingActionButton: const AiAssistantFab(),
-
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
       body: loading
           ? Center(
               child: CircularProgressIndicator(
                 color: colors.primary,
               ),
             )
-          : CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _buildHeader(context),
-                ),
-
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _statCard(
-                            context,
-                            "Total Bookings",
-                            "${dashboard["totalBookings"] ?? 0}",
-                            Icons.calendar_month_rounded,
-                            colors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _statCard(
-                            context,
-                            "Revenue",
-                            "\$${dashboard["revenue"] ?? 0}",
-                            Icons.attach_money_rounded,
-                            colors.secondary,
-                          ),
-                        ),
-                      ],
-                    ),
+          : RefreshIndicator(
+              color: colors.primary,
+              onRefresh: loadDashboard,
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _buildHeader(context),
                   ),
-                ),
 
-                if (pendingBookings > 0)
+                  if (hasVenueReviewWarning)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                        child: _venueReviewSummaryBanner(context),
+                      ),
+                    ),
+
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      child: GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const BookingsPageVenue(),
-                          ),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: colors.tertiary.withOpacity(.12),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: colors.tertiary.withOpacity(.35),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _statCard(
+                              context,
+                              "Total Bookings",
+                              "${dashboard["totalBookings"] ?? 0}",
+                              Icons.calendar_month_rounded,
+                              colors.primary,
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.notifications_active_rounded,
-                                color: colors.tertiary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  "You have $pendingBookings pending booking${pendingBookings > 1 ? 's' : ''} waiting for your confirmation",
-                                  style: TextStyle(
-                                    fontFamily: "Montserrat",
-                                    color: colors.tertiary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                Icons.chevron_right,
-                                color: colors.tertiary,
-                              ),
-                            ],
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: _statCard(
+                              context,
+                              "Revenue",
+                              "\$${dashboard["revenue"] ?? 0}",
+                              Icons.attach_money_rounded,
+                              colors.secondary,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
 
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Quick Actions",
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontFamily: "Montserrat",
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: colors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        GridView.count(
-                          crossAxisCount: 2,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: 1.55,
-                          children: [
-                            _actionCard(
-                              context,
-                              Icons.add_circle_outline_rounded,
-                              "Add New\nVenue",
-                              colors.primary,
-                              () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => AddVenuePage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _actionCard(
-                              context,
-                              Icons.edit_calendar_rounded,
-                              "Edit\nAvailability",
-                              colors.secondary,
-                              () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const SelectVenueAvailabilityPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _actionCard(
-                              context,
-                              Icons.location_on_rounded,
-                              "Manage\nLocations",
-                              colors.primary,
-                              () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const MyVenuesPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _actionCard(
-                              context,
-                              Icons.bar_chart_rounded,
-                              "View\nReports",
-                              colors.secondary,
-                              () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ReportsPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Upcoming Bookings",
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontFamily: "Montserrat",
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: colors.onSurface,
-                          ),
-                        ),
-                        GestureDetector(
+                  if (pendingBookings > 0)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        child: GestureDetector(
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -381,76 +327,300 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
                             ),
                           ),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              "See all",
-                              style: TextStyle(
-                                fontFamily: "Montserrat",
-                                fontWeight: FontWeight.w600,
-                                color: colors.onPrimaryContainer,
-                                fontSize: 12,
+                              color: colors.tertiary.withOpacity(.12),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: colors.tertiary.withOpacity(.35),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                bookings.isEmpty
-                    ? SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(30),
-                            decoration: BoxDecoration(
-                              color: colors.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
+                            child: Row(
                               children: [
                                 Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 40,
-                                  color: colors.onSurfaceVariant,
+                                  Icons.notifications_active_rounded,
+                                  color: colors.tertiary,
+                                  size: 20,
                                 ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  "No upcoming bookings",
-                                  style: TextStyle(
-                                    fontFamily: "Montserrat",
-                                    color: colors.onSurfaceVariant,
-                                    fontSize: 15,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    "You have $pendingBookings pending booking${pendingBookings > 1 ? 's' : ''} waiting for your confirmation",
+                                    style: TextStyle(
+                                      fontFamily: "Montserrat",
+                                      color: colors.tertiary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
                                   ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: colors.tertiary,
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      )
-                    : SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (_, i) => Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-                            child: _bookingCard(context, bookings[i]),
-                          ),
-                          childCount: bookings.length,
-                        ),
                       ),
+                    ),
 
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 90),
-                ),
-              ],
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Quick Actions",
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontFamily: "Montserrat",
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: colors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 14,
+                            childAspectRatio: 1.55,
+                            children: [
+                              _actionCard(
+                                context,
+                                Icons.add_circle_outline_rounded,
+                                "Add New\nVenue",
+                                colors.primary,
+                                () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AddVenuePage(),
+                                    ),
+                                  ).then((_) => loadDashboard());
+                                },
+                              ),
+                              _actionCard(
+                                context,
+                                Icons.edit_calendar_rounded,
+                                "Edit\nAvailability",
+                                colors.secondary,
+                                () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const SelectVenueAvailabilityPage(),
+                                    ),
+                                  ).then((_) => loadDashboard());
+                                },
+                              ),
+                              _actionCard(
+                                context,
+                                Icons.location_on_rounded,
+                                "Manage\nLocations",
+                                colors.primary,
+                                _openMyVenues,
+                              ),
+                              _actionCard(
+                                context,
+                                Icons.bar_chart_rounded,
+                                "View\nReports",
+                                colors.secondary,
+                                () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ReportsPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Upcoming Bookings",
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontFamily: "Montserrat",
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: colors.onSurface,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BookingsPageVenue(),
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.primaryContainer,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                "See all",
+                                style: TextStyle(
+                                  fontFamily: "Montserrat",
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.onPrimaryContainer,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  bookings.isEmpty
+                      ? SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(30),
+                              decoration: BoxDecoration(
+                                color: colors.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 40,
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    "No upcoming bookings",
+                                    style: TextStyle(
+                                      fontFamily: "Montserrat",
+                                      color: colors.onSurfaceVariant,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (_, i) => Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                              child: _bookingCard(context, bookings[i]),
+                            ),
+                            childCount: bookings.length,
+                          ),
+                        ),
+
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 90),
+                  ),
+                ],
+              ),
             ),
+    );
+  }
+
+  Widget _venueReviewSummaryBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final count = venuesNeedingAttentionCount;
+
+    return GestureDetector(
+      onTap: _openMyVenues,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: colors.tertiary.withOpacity(.10),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: colors.tertiary.withOpacity(.32),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: colors.tertiary.withOpacity(.13),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                Icons.info_outline_rounded,
+                color: colors.tertiary,
+                size: 23,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Venue Review Status",
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      color: colors.tertiary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    count == 1
+                        ? "1 venue needs admin review or approval."
+                        : "$count venues need admin review or approval.",
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      color: colors.onSurfaceVariant,
+                      fontSize: 12,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    "Tap to check each venue status.",
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      color: colors.onSurfaceVariant.withOpacity(.85),
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colors.tertiary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -487,6 +657,7 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
                       builder: (_) => const ProfilePage(),
                     ),
                   );
+
                   loadDashboard();
                 },
                 child: Container(
@@ -531,7 +702,6 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
                   ),
                 ),
               ),
-
               GestureDetector(
                 onTap: () async {
                   await Navigator.push(
@@ -540,6 +710,7 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
                       builder: (_) => const NotificationsPage(),
                     ),
                   );
+
                   loadBadges();
                 },
                 child: _badgeIcon(
@@ -549,7 +720,6 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
                 ),
               ),
               const SizedBox(width: 8),
-
               GestureDetector(
                 onTap: () async {
                   await Navigator.push(
@@ -558,6 +728,7 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
                       builder: (_) => const MessagesPage(),
                     ),
                   );
+
                   loadBadges();
                 },
                 child: _badgeIcon(
@@ -777,12 +948,16 @@ class _VenueOwnerHomeState extends State<VenueOwnerHome> {
                             color: colors.onSurfaceVariant,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            "${b["date"]} • ${b["start_time"]} - ${b["end_time"]}",
-                            style: TextStyle(
-                              fontFamily: "Montserrat",
-                              color: colors.onSurfaceVariant,
-                              fontSize: 12,
+                          Expanded(
+                            child: Text(
+                              "${b["date"]} • ${b["start_time"]} - ${b["end_time"]}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: "Montserrat",
+                                color: colors.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],

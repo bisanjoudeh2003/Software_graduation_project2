@@ -59,3 +59,37 @@ exports.sendMessage = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getOrCreateSupportConversation = async (req, res) => {
+  try {
+    const supportAdmin = await messageModel.getSupportAdmin();
+
+    if (!supportAdmin) {
+      return res.status(404).json({
+        message: "Support admin not found",
+      });
+    }
+
+    if (Number(supportAdmin.id) === Number(req.user.id)) {
+      return res.status(400).json({
+        message: "Admin cannot start support chat with themselves",
+      });
+    }
+
+    const conv = await messageModel.getOrCreateConversation(
+      req.user.id,
+      supportAdmin.id
+    );
+
+    res.json({
+      ...conv,
+      other_user_id: supportAdmin.id,
+      other_user_name: "Lensia Support",
+      other_user_image: supportAdmin.profile_image,
+      other_user_role: "admin",
+      other_user_is_admin: 1,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -23,6 +23,9 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
   static const Color paleGreen = Color(0xFFEAF3EE);
   static const Color cream = Color(0xFFF6F4EE);
   static const Color softRed = Color(0xFFD9534F);
+  static const Color softRedBg = Color(0xFFFAECEC);
+  static const Color softOrange = Color(0xFFE38B29);
+  static const Color softOrangeBg = Color(0xFFFFF3E4);
 
   late TextEditingController nameController;
   late TextEditingController categoryController;
@@ -61,6 +64,18 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
     priceController.dispose();
     stockController.dispose();
     super.dispose();
+  }
+
+  int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  String _cleanText(dynamic value, {String fallback = ""}) {
+    if (value == null) return fallback;
+    final text = value.toString().trim();
+    return text.isEmpty || text == "null" ? fallback : text;
   }
 
   Future<void> _saveChanges() async {
@@ -123,7 +138,10 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
       SnackBar(
         content: Text(
           msg,
-          style: const TextStyle(fontFamily: "Montserrat"),
+          style: const TextStyle(
+            fontFamily: "Montserrat",
+            fontSize: 12.5,
+          ),
         ),
         backgroundColor: isError ? softRed : primaryGreen,
         behavior: SnackBarBehavior.floating,
@@ -157,6 +175,62 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
         .join(" ");
   }
 
+  String _adminStatusText() {
+    final reviewed = _toInt(widget.product["product_reviewed"]) == 1;
+    final flagged = _toInt(widget.product["product_flagged"]) == 1;
+    final visibility = _cleanText(
+      widget.product["admin_visibility"],
+      fallback: "hidden",
+    );
+
+    if (flagged) return "Flagged by Admin";
+    if (!reviewed) return "Under Admin Review";
+    if (visibility == "visible") return "Approved & Visible";
+    return "Reviewed, Hidden by Admin";
+  }
+
+  Color _adminStatusColor() {
+    final reviewed = _toInt(widget.product["product_reviewed"]) == 1;
+    final flagged = _toInt(widget.product["product_flagged"]) == 1;
+    final visibility = _cleanText(
+      widget.product["admin_visibility"],
+      fallback: "hidden",
+    );
+
+    if (flagged) return softRed;
+    if (!reviewed) return softOrange;
+    if (visibility == "visible") return primaryGreen;
+    return Colors.grey.shade700;
+  }
+
+  Color _adminStatusBg() {
+    final reviewed = _toInt(widget.product["product_reviewed"]) == 1;
+    final flagged = _toInt(widget.product["product_flagged"]) == 1;
+    final visibility = _cleanText(
+      widget.product["admin_visibility"],
+      fallback: "hidden",
+    );
+
+    if (flagged) return softRedBg;
+    if (!reviewed) return softOrangeBg;
+    if (visibility == "visible") return paleGreen;
+    return Colors.grey.shade200;
+  }
+
+  IconData _adminStatusIcon() {
+    final reviewed = _toInt(widget.product["product_reviewed"]) == 1;
+    final flagged = _toInt(widget.product["product_flagged"]) == 1;
+    final visibility = _cleanText(
+      widget.product["admin_visibility"],
+      fallback: "hidden",
+    );
+
+    if (flagged) return Icons.flag_outlined;
+    if (!reviewed) return Icons.pending_actions_outlined;
+    if (visibility == "visible") return Icons.verified_outlined;
+    return Icons.visibility_off_outlined;
+  }
+
   @override
   Widget build(BuildContext context) {
     final productName = widget.product["name"]?.toString() ?? "Product";
@@ -170,6 +244,8 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 120),
               children: [
+                _adminReviewCard(),
+                const SizedBox(height: 16),
                 _infoCard(),
                 const SizedBox(height: 20),
                 _sectionTitle(
@@ -255,7 +331,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
         ),
         child: SizedBox(
           width: double.infinity,
-          height: 54,
+          height: 52,
           child: ElevatedButton.icon(
             onPressed: loading ? null : _saveChanges,
             icon: loading
@@ -267,13 +343,13 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.save_outlined),
+                : const Icon(Icons.save_outlined, size: 19),
             label: Text(
               loading ? "Saving..." : "Save Changes",
               style: const TextStyle(
                 fontFamily: "Montserrat",
                 fontWeight: FontWeight.w900,
-                fontSize: 15,
+                fontSize: 14,
               ),
             ),
             style: ElevatedButton.styleFrom(
@@ -310,7 +386,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 34),
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 30),
           child: Column(
             children: [
               Row(
@@ -318,8 +394,8 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      width: 42,
-                      height: 42,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(.16),
                         borderRadius: BorderRadius.circular(14),
@@ -327,7 +403,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                       child: const Icon(
                         Icons.arrow_back_ios_new_rounded,
                         color: Colors.white,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
                   ),
@@ -338,19 +414,19 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                         style: TextStyle(
                           fontFamily: "Montserrat",
                           color: Colors.white,
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 42),
+                  const SizedBox(width: 40),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
               Container(
-                width: 86,
-                height: 86,
+                width: 78,
+                height: 78,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(.16),
                   shape: BoxShape.circle,
@@ -362,7 +438,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                 child: const Icon(
                   Icons.inventory_2_outlined,
                   color: Colors.white,
-                  size: 38,
+                  size: 34,
                 ),
               ),
               const SizedBox(height: 12),
@@ -373,7 +449,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                 style: const TextStyle(
                   fontFamily: "Montserrat",
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -383,7 +459,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                 style: TextStyle(
                   fontFamily: "Montserrat",
                   color: Colors.white.withOpacity(.78),
-                  fontSize: 12,
+                  fontSize: 11.8,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -394,9 +470,84 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
     );
   }
 
+  Widget _adminReviewCard() {
+    final color = _adminStatusColor();
+    final bg = _adminStatusBg();
+    final flagReason = _cleanText(widget.product["product_flag_reason"]);
+
+    String message = "This product status is controlled by admin review.";
+
+    if (_toInt(widget.product["product_flagged"]) == 1 &&
+        flagReason.isNotEmpty) {
+      message = "Admin note: $flagReason";
+    } else if (_toInt(widget.product["product_reviewed"]) == 0) {
+      message =
+          "This product is waiting for admin approval before appearing publicly.";
+    } else if (_cleanText(widget.product["admin_visibility"]) == "hidden") {
+      message =
+          "This product was reviewed but is currently hidden from customers.";
+    } else {
+      message = "This product is approved and visible in the public warehouse.";
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color.withOpacity(.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              _adminStatusIcon(),
+              color: color,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _adminStatusText(),
+                  style: TextStyle(
+                    fontFamily: "Montserrat",
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontFamily: "Montserrat",
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _infoCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: paleGreen,
         borderRadius: BorderRadius.circular(22),
@@ -407,8 +558,8 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 46,
+            height: 46,
             decoration: const BoxDecoration(
               color: primaryGreen,
               shape: BoxShape.circle,
@@ -416,7 +567,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
             child: const Icon(
               Icons.info_outline_rounded,
               color: Colors.white,
-              size: 24,
+              size: 23,
             ),
           ),
           const SizedBox(width: 13),
@@ -430,7 +581,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                     fontFamily: "Montserrat",
                     fontWeight: FontWeight.w900,
                     color: primaryGreen,
-                    fontSize: 14,
+                    fontSize: 13.5,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -439,7 +590,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
                   style: const TextStyle(
                     fontFamily: "Montserrat",
                     color: Colors.black54,
-                    fontSize: 12,
+                    fontSize: 11.8,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -460,7 +611,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
         Icon(
           icon,
           color: primaryGreen,
-          size: 20,
+          size: 19,
         ),
         const SizedBox(width: 8),
         Text(
@@ -469,7 +620,7 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
             fontFamily: "Montserrat",
             color: primaryGreen,
             fontWeight: FontWeight.w900,
-            fontSize: 15,
+            fontSize: 14.5,
           ),
         ),
       ],
@@ -515,13 +666,14 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
         fontFamily: "Montserrat",
         fontWeight: FontWeight.w700,
         color: Colors.black87,
+        fontSize: 13,
       ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(
           icon,
           color: primaryGreen,
-          size: 20,
+          size: 19,
         ),
         filled: true,
         fillColor: Colors.white.withOpacity(.82),
@@ -529,10 +681,11 @@ class _WarehouseEditProductPageState extends State<WarehouseEditProductPage> {
           fontFamily: "Montserrat",
           color: Colors.black54,
           fontWeight: FontWeight.w600,
+          fontSize: 12.5,
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
-          vertical: 16,
+          vertical: 15,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),

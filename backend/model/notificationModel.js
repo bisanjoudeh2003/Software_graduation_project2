@@ -2,10 +2,6 @@ const db = require("../config/db");
 const { sendPushToUser } = require("../services/pushNotificationService");
 
 // ── Create new notification ──────────────────────────────────────
-// reference_type / reference_id are used to open the related page later.
-// Example:
-// reference_type = "booking_gallery"
-// reference_id   = booking_id or gallery_id depending on the target page
 
 const createNotification = async (
   userId,
@@ -33,8 +29,6 @@ const createNotification = async (
     ]
   );
 
-  // Send push notification after saving it in database.
-  // If push fails, the app notification still stays saved.
   sendPushToUser({
     userId,
     title,
@@ -50,9 +44,6 @@ const createNotification = async (
 };
 
 // ── Create many notifications ────────────────────────────────────
-// Saves many notifications at once.
-// Note: this stores notifications in DB only.
-// If you also want push for bulk notifications, send push separately.
 
 const createManyNotifications = async (notifications = []) => {
   const cleanNotifications = notifications.filter((item) => item.userId);
@@ -78,11 +69,55 @@ const createManyNotifications = async (notifications = []) => {
     [values]
   );
 
+  cleanNotifications.forEach((item) => {
+    sendPushToUser({
+      userId: item.userId,
+      title: item.title,
+      body: item.body,
+      type: item.type || "general",
+      referenceType: item.referenceType || null,
+      referenceId: item.referenceId || null,
+    }).catch((error) => {
+      console.error("Bulk push notification error:", error.message);
+    });
+  });
+
   return result;
 };
 
+// ── Create notification for all admins ────────────────────────────
+
+const createNotificationForAdmins = async (
+  title,
+  body,
+  type = "admin_alert",
+  referenceType = null,
+  referenceId = null
+) => {
+  const [admins] = await db.query(
+    `
+    SELECT id
+    FROM users
+    WHERE role = 'admin'
+      AND (status IS NULL OR status = 'active')
+    `
+  );
+
+  if (!admins || admins.length === 0) return null;
+
+  const notifications = admins.map((admin) => ({
+    userId: admin.id,
+    title,
+    body,
+    type,
+    referenceType,
+    referenceId,
+  }));
+
+  return createManyNotifications(notifications);
+};
+
 // ── Get all notifications for current user ───────────────────────
-// body AS message is returned for Flutter compatibility.
 
 const getNotificationsByUser = async (userId) => {
   const [rows] = await db.query(
@@ -155,7 +190,6 @@ const getUnreadCount = async (userId) => {
 };
 
 // ── Reminder log helpers ─────────────────────────────────────────
-// Used to avoid sending the same booking reminder more than once.
 
 const wasReminderSent = async (bookingId, userId, reminderType) => {
   const [rows] = await db.query(
@@ -189,6 +223,7 @@ const markReminderSent = async (bookingId, userId, reminderType) => {
 module.exports = {
   createNotification,
   createManyNotifications,
+  createNotificationForAdmins,
   getNotificationsByUser,
   markAsRead,
   markAllAsRead,

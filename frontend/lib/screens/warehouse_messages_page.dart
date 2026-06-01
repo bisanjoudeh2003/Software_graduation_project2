@@ -100,6 +100,33 @@ class _WarehouseMessagesPageState extends State<WarehouseMessagesPage> {
     }
   }
 
+  Future<void> _openSupportChat() async {
+  final user = await AuthService.getMe();
+  final currentId = int.tryParse(user?["id"]?.toString() ?? "");
+
+  if (currentId == null) return;
+
+  final conv = await MessageService.getOrCreateSupportConversation();
+
+  if (conv == null || !mounted) return;
+
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ChatPage(
+        conversationId: conv["id"],
+        otherUserId: conv["other_user_id"],
+        otherUserName: "Lensia Support",
+        otherUserImage: conv["other_user_image"]?.toString(),
+        currentUserId: currentId,
+        otherUserRole: "admin",
+      ),
+    ),
+  );
+
+  await loadConversations(showLoader: false);
+}
+
   void _onSearchChanged() {
     final query = searchController.text.trim();
 
@@ -175,7 +202,7 @@ class _WarehouseMessagesPageState extends State<WarehouseMessagesPage> {
     required String name,
     required String role,
   }) {
-    return _isAdminRole(role) ? "Lensia Admin" : name;
+    return _isAdminRole(role) ? "Lensia Support" : name;
   }
 
   String _roleLabel(String role) {
@@ -265,6 +292,7 @@ class _WarehouseMessagesPageState extends State<WarehouseMessagesPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(child: _header()),
+            if (!showSearch) SliverToBoxAdapter(child: _supportCard()),
             if (showSearch)
               if (searching)
                 const SliverFillRemaining(
@@ -325,6 +353,73 @@ class _WarehouseMessagesPageState extends State<WarehouseMessagesPage> {
       ),
     );
   }
+
+  Widget _supportCard() {
+  return GestureDetector(
+    onTap: _openSupportChat,
+    child: Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: officialBlue.withOpacity(.10),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: officialBlue.withOpacity(.35),
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: officialBlue.withOpacity(.14),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.support_agent_rounded,
+              color: officialBlue,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Contact Lensia Support",
+                  style: TextStyle(
+                    fontFamily: "Montserrat",
+                    color: officialBlue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Need help with products, orders, stock or payments?",
+                  style: TextStyle(
+                    fontFamily: "Montserrat",
+                    color: Colors.black54,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: officialBlue,
+            size: 16,
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _header() {
     final showSearch = searchController.text.trim().isNotEmpty;
@@ -620,7 +715,7 @@ class _WarehouseMessagesPageState extends State<WarehouseMessagesPage> {
     final isAdmin = _isAdminRole(otherRole) ||
         _isAdminFromValue(conv["other_user_is_admin"]);
 
-    final otherName = isAdmin ? "Lensia Admin" : rawName;
+    final otherName = isAdmin ?"Lensia Support" : rawName;
 
     final lastMessage = conv["last_message"]?.toString() ?? "No messages yet";
     final lastTime = _formatTime(conv["last_message_time"]?.toString());

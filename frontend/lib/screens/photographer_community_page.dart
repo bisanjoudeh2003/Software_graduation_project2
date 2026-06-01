@@ -7,6 +7,7 @@ import 'add_community_post_page.dart';
 import 'community_post_details_page.dart';
 import 'photographer_public_profile_page.dart';
 import 'community_reels_page.dart';
+import 'my_community_posts_page.dart';
 
 class PhotographerCommunityPage extends StatefulWidget {
   const PhotographerCommunityPage({super.key});
@@ -27,6 +28,7 @@ class _PhotographerCommunityPageState
   static const Color purple = Color(0xFF7C4DBC);
   static const Color brown = Color(0xFF8B5A2B);
   static const Color blue = Color(0xFF1565C0);
+  static const Color gold = Color(0xFFC9A84C);
 
   final TextEditingController searchController = TextEditingController();
   Timer? _debounce;
@@ -173,8 +175,32 @@ class _PhotographerCommunityPageState
     );
 
     if (created == true) {
-      await loadPosts();
+      await loadPosts(showLoader: false);
     }
+  }
+
+  Future<void> _openMyPosts() async {
+    final changed = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MyCommunityPostsPage(),
+      ),
+    );
+
+    if (changed == true) {
+      await loadPosts(showLoader: false);
+    }
+  }
+
+  Future<void> _openReels() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CommunityReelsPage(),
+      ),
+    );
+
+    await loadPosts(showLoader: false);
   }
 
   Future<void> _openDetails(Map post) async {
@@ -729,84 +755,43 @@ class _PhotographerCommunityPageState
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CommunityReelsPage(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      height: 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(.16),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(.18),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.video_collection_outlined,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          SizedBox(width: 7),
-                          Text(
-                            "Reels",
-                            style: TextStyle(
-                              fontFamily: "Montserrat",
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedSort =
-                            selectedSort == "latest" ? "popular" : "latest";
-                      });
-                      loadPosts();
-                    },
-                    child: Container(
-                      height: 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(.16),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(.18),
-                        ),
-                      ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      reverse: true,
                       child: Row(
                         children: [
-                          Icon(
-                            selectedSort == "latest"
+                          _headerActionButton(
+                            icon: Icons.pending_actions_rounded,
+                            text: "My Posts",
+                            color: gold,
+                            onTap: _openMyPosts,
+                          ),
+                          const SizedBox(width: 8),
+                          _headerActionButton(
+                            icon: Icons.video_collection_outlined,
+                            text: "Reels",
+                            color: Colors.white.withOpacity(.16),
+                            onTap: _openReels,
+                          ),
+                          const SizedBox(width: 8),
+                          _headerActionButton(
+                            icon: selectedSort == "latest"
                                 ? Icons.access_time_rounded
                                 : Icons.local_fire_department_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 7),
-                          Text(
-                            selectedSort == "latest" ? "Latest" : "Popular",
-                            style: const TextStyle(
-                              fontFamily: "Montserrat",
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
+                            text: selectedSort == "latest"
+                                ? "Latest"
+                                : "Popular",
+                            color: Colors.white.withOpacity(.16),
+                            onTap: () {
+                              setState(() {
+                                selectedSort = selectedSort == "latest"
+                                    ? "popular"
+                                    : "latest";
+                              });
+                              loadPosts();
+                            },
                           ),
                         ],
                       ),
@@ -822,6 +807,7 @@ class _PhotographerCommunityPageState
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
+                  height: 1.18,
                 ),
               ),
               const SizedBox(height: 8),
@@ -888,29 +874,81 @@ class _PhotographerCommunityPageState
     );
   }
 
+  Widget _headerActionButton({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isGold = color == gold;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.white.withOpacity(isGold ? .15 : .18),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: const TextStyle(
+                fontFamily: "Montserrat",
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _quickActions() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: _quickActionBox(
+      padding: const EdgeInsets.only(top: 18),
+      child: SizedBox(
+        height: 112,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          children: [
+            _quickActionBox(
               icon: Icons.edit_note_rounded,
               title: "Share Tip",
-              subtitle: "Post a useful idea",
+              subtitle: "Submit useful ideas for review",
               onTap: () => _openAddPost(),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _quickActionBox(
+            const SizedBox(width: 12),
+            _quickActionBox(
               icon: Icons.help_outline_rounded,
               title: "Ask Question",
-              subtitle: "Get help from others",
+              subtitle: "Ask and wait for approval",
               onTap: () => _openAddPost(asQuestion: true),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            _quickActionBox(
+              icon: Icons.fact_check_outlined,
+              title: "My Posts",
+              subtitle: "Track approval status",
+              onTap: _openMyPosts,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -924,8 +962,9 @@ class _PhotographerCommunityPageState
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 102,
-        padding: const EdgeInsets.all(14),
+        width: 155,
+        height: 104,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
@@ -948,7 +987,7 @@ class _PhotographerCommunityPageState
               ),
               child: Icon(icon, color: primaryGreen, size: 23),
             ),
-            const SizedBox(width: 11),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -961,7 +1000,7 @@ class _PhotographerCommunityPageState
                     style: const TextStyle(
                       fontFamily: "Montserrat",
                       color: primaryGreen,
-                      fontSize: 13,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -973,7 +1012,7 @@ class _PhotographerCommunityPageState
                     style: const TextStyle(
                       fontFamily: "Montserrat",
                       color: Colors.black45,
-                      fontSize: 11,
+                      fontSize: 10,
                       height: 1.25,
                       fontWeight: FontWeight.w600,
                     ),
@@ -989,7 +1028,7 @@ class _PhotographerCommunityPageState
 
   Widget _filters() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 0, 0),
+      padding: const EdgeInsets.fromLTRB(20, 14, 0, 0),
       child: SizedBox(
         height: 43,
         child: ListView.separated(
