@@ -227,6 +227,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                 fontFamily: 'Montserrat',
                 fontWeight: FontWeight.bold,
                 color: colors.onSurface,
+                fontSize: 17,
               ),
             ),
             content: Column(
@@ -238,12 +239,14 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     color: colors.onSurface,
+                    fontSize: 13,
                   ),
                   decoration: InputDecoration(
                     labelText: 'Field Label',
                     labelStyle: TextStyle(
                       fontFamily: 'Montserrat',
                       color: colors.onSurfaceVariant,
+                      fontSize: 12,
                     ),
                     filled: true,
                     fillColor: colors.surfaceContainerLow,
@@ -258,8 +261,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                   'Field Type',
                   style: TextStyle(
                     fontFamily: 'Montserrat',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
                     color: colors.onSurface,
                   ),
                 ),
@@ -278,8 +281,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
+                          horizontal: 13,
+                          vertical: 7,
                         ),
                         decoration: BoxDecoration(
                           color: selected
@@ -291,8 +294,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                           type,
                           style: TextStyle(
                             fontFamily: 'Montserrat',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
                             color: selected
                                 ? colors.onPrimary
                                 : colors.onSurfaceVariant,
@@ -312,6 +315,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                   style: TextStyle(
                     fontFamily: 'Montserrat',
                     color: colors.onSurfaceVariant,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -336,6 +340,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
                     color: colors.primary,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -407,18 +412,13 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
         'price': price,
         'stock_quantity': stock,
         'image_url': null,
-
         'allow_custom_text': _isCustom ? allowCustomText : false,
         'allow_color_choice': _isCustom ? allowColorChoice : false,
         'allow_size_choice': _isCustom ? allowSizeChoice : false,
         'allow_event_date': _isCustom ? allowEventDate : false,
         'allow_reference_image': _isCustom ? allowReferenceImage : false,
-
-        // أهم سطرين:
-        // allow_preview ما بصير true إلا إذا preview_type فعلي.
         'preview_type': _hasPreview ? _previewType : null,
         'allow_preview': _hasPreview ? 1 : 0,
-
         'custom_fields': _isCustom ? _buildCustomFieldsData() : null,
       };
 
@@ -446,38 +446,55 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
 
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (_) => AlertDialog(
           backgroundColor: colors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
-            '✓ Product Added',
+            'Submitted for Review',
             style: TextStyle(
               fontFamily: 'Montserrat',
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
               color: colors.primary,
+              fontSize: 18,
             ),
           ),
           content: Text(
-            'Your product has been added successfully.',
+            'Your product was submitted successfully and is waiting for admin approval. It will appear in the public warehouse after it is approved.',
             style: TextStyle(
               fontFamily: 'Montserrat',
               color: colors.onSurface,
+              fontSize: 13,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context, true);
-              },
-              child: Text(
-                'OK',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  color: colors.primary,
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context, true);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
@@ -510,6 +527,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.bold,
             color: colors.error,
+            fontSize: 17,
           ),
         ),
         content: Text(
@@ -517,6 +535,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
           style: TextStyle(
             fontFamily: 'Montserrat',
             color: colors.onSurface,
+            fontSize: 13,
+            height: 1.45,
           ),
         ),
         actions: [
@@ -527,6 +547,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
               style: TextStyle(
                 fontFamily: 'Montserrat',
                 color: colors.primary,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -560,7 +581,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
               child: SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -579,23 +600,24 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 18),
                       Text(
                         'Add New Product',
                         style: TextStyle(
                           fontFamily: 'Montserrat',
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
                           color: colors.onPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Fill in the product details below',
+                        'Submit a product for admin review',
                         style: TextStyle(
                           fontFamily: 'Montserrat',
-                          fontSize: 14,
-                          color: colors.onPrimary.withOpacity(.8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onPrimary.withOpacity(.82),
                         ),
                       ),
                     ],
@@ -610,6 +632,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _adminReviewCard(context),
+                  const SizedBox(height: 22),
                   _sectionTitle(
                     context,
                     'Product Photos',
@@ -617,9 +641,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                   ),
                   const SizedBox(height: 10),
                   _productImagesPicker(context),
-
-                  const SizedBox(height: 24),
-
+                  const SizedBox(height: 22),
                   _sectionTitle(
                     context,
                     'Basic Info',
@@ -661,17 +683,19 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                       style: TextStyle(
                         fontFamily: 'Montserrat',
                         color: colors.onSurface,
+                        fontSize: 13,
                       ),
                       decoration: InputDecoration(
                         prefixIcon: Icon(
                           Icons.attach_money_rounded,
                           color: colors.primary,
-                          size: 20,
+                          size: 19,
                         ),
                         hintText: '0.00',
                         hintStyle: TextStyle(
                           fontFamily: 'Montserrat',
                           color: colors.onSurfaceVariant,
+                          fontSize: 12.5,
                         ),
                         filled: true,
                         fillColor: colors.surfaceContainerLow,
@@ -683,9 +707,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                     ),
                     const SizedBox(height: 14),
                   ]),
-
                   const SizedBox(height: 20),
-
                   _sectionTitle(context, 'Product Type', Icons.tune_outlined),
                   const SizedBox(height: 10),
                   Row(
@@ -705,9 +727,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
                   _sectionTitle(context, 'Stock', Icons.inventory_outlined),
                   const SizedBox(height: 10),
                   _card(context, [
@@ -722,12 +742,13 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                       style: TextStyle(
                         fontFamily: 'Montserrat',
                         color: colors.onSurface,
+                        fontSize: 13,
                       ),
                       decoration: InputDecoration(
                         prefixIcon: Icon(
                           Icons.numbers_rounded,
                           color: colors.primary,
-                          size: 20,
+                          size: 19,
                         ),
                         hintText: _productType == 'custom'
                             ? 'Optional for custom products'
@@ -735,6 +756,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                         hintStyle: TextStyle(
                           fontFamily: 'Montserrat',
                           color: colors.onSurfaceVariant,
+                          fontSize: 12.5,
                         ),
                         filled: true,
                         fillColor: colors.surfaceContainerLow,
@@ -745,7 +767,6 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                       ),
                     ),
                   ]),
-
                   if (_productType == 'custom') ...[
                     const SizedBox(height: 20),
                     _sectionTitle(
@@ -755,9 +776,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                     ),
                     const SizedBox(height: 10),
                     _previewTypeList(context),
-
                     const SizedBox(height: 20),
-
                     _sectionTitle(
                       context,
                       'Customization Options',
@@ -807,9 +826,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                         isLast: true,
                       ),
                     ]),
-
                     const SizedBox(height: 20),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -822,8 +839,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                           onTap: _showAddFieldDialog,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
+                              horizontal: 13,
+                              vertical: 7,
                             ),
                             decoration: BoxDecoration(
                               color: colors.primary.withOpacity(.1),
@@ -842,8 +859,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                                   'Add Field',
                                   style: TextStyle(
                                     fontFamily: 'Montserrat',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
                                     color: colors.primary,
                                   ),
                                 ),
@@ -854,10 +871,9 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                       ],
                     ),
                     const SizedBox(height: 10),
-
                     if (_customFields.isEmpty)
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(15),
                         decoration: BoxDecoration(
                           color: colors.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(16),
@@ -879,7 +895,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                                 'No extra fields yet. Tap "Add Field" to create one.',
                                 style: TextStyle(
                                   fontFamily: 'Montserrat',
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   color: colors.onSurfaceVariant,
                                 ),
                               ),
@@ -921,8 +937,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                                         field['label'] ?? '',
                                         style: TextStyle(
                                           fontFamily: 'Montserrat',
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12.5,
                                           color: colors.onSurface,
                                         ),
                                       ),
@@ -930,7 +946,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                                         'Type: ${field['type']}',
                                         style: TextStyle(
                                           fontFamily: 'Montserrat',
-                                          fontSize: 11,
+                                          fontSize: 10.8,
                                           color: colors.onSurfaceVariant,
                                         ),
                                       ),
@@ -955,13 +971,11 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                         }),
                       ),
                   ],
-
-                  const SizedBox(height: 30),
-
+                  const SizedBox(height: 28),
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
+                    height: 52,
+                    child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.primary,
                         foregroundColor: colors.onPrimary,
@@ -971,21 +985,90 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                         ),
                       ),
                       onPressed: _loading ? null : _save,
-                      child: _loading
-                          ? CircularProgressIndicator(color: colors.onPrimary)
-                          : const Text(
-                              'Save Product',
-                              style: TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                      icon: _loading
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: colors.onPrimary,
+                                strokeWidth: 2,
                               ),
-                            ),
+                            )
+                          : const Icon(Icons.fact_check_outlined, size: 19),
+                      label: Text(
+                        _loading ? 'Submitting...' : 'Submit for Review',
+                        style: const TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _adminReviewCard(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: colors.primaryContainer.withOpacity(.45),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colors.primary.withOpacity(.18),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: colors.primary.withOpacity(.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.admin_panel_settings_outlined,
+              color: colors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Admin Review Required',
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    color: colors.primary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'New products must be approved by admin before they appear to clients and photographers.',
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    color: colors.onSurface,
+                    fontSize: 11.5,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1026,7 +1109,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                 children: [
                   Icon(
                     Icons.add_photo_alternate_outlined,
-                    size: 38,
+                    size: 36,
                     color: colors.primary,
                   ),
                   const SizedBox(height: 8),
@@ -1036,8 +1119,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                         : 'Tap to add more photos',
                     style: TextStyle(
                       fontFamily: 'Montserrat',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
                       color: colors.primary,
                     ),
                   ),
@@ -1046,7 +1129,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                     'You can select more than one image',
                     style: TextStyle(
                       fontFamily: 'Montserrat',
-                      fontSize: 11,
+                      fontSize: 10.8,
                       color: colors.onSurfaceVariant,
                     ),
                   ),
@@ -1172,7 +1255,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                   child: Icon(
                     item['icon'] as IconData,
                     color: selected ? colors.onPrimary : colors.primary,
-                    size: 22,
+                    size: 21,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1185,7 +1268,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                         style: TextStyle(
                           fontFamily: 'Montserrat',
                           fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                          fontSize: 12.8,
                           color: selected ? colors.onPrimary : colors.onSurface,
                         ),
                       ),
@@ -1194,7 +1277,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                         item['description'].toString(),
                         style: TextStyle(
                           fontFamily: 'Montserrat',
-                          fontSize: 11,
+                          fontSize: 10.8,
                           height: 1.3,
                           color: selected
                               ? colors.onPrimary.withOpacity(.82)
@@ -1247,7 +1330,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
         onTap: () => _onProductTypeChanged(value),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 13),
           decoration: BoxDecoration(
             color: selected ? colors.primary : colors.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(16),
@@ -1261,15 +1344,15 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
               Icon(
                 icon,
                 color: selected ? colors.onPrimary : colors.onSurfaceVariant,
-                size: 24,
+                size: 23,
               ),
               const SizedBox(height: 6),
               Text(
                 label,
                 style: TextStyle(
                   fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
                   color: selected ? colors.onPrimary : colors.onSurfaceVariant,
                 ),
               ),
@@ -1318,8 +1401,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                     title,
                     style: TextStyle(
                       fontFamily: 'Montserrat',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
                       color: colors.onSurface,
                     ),
                   ),
@@ -1327,7 +1410,7 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
                     subtitle,
                     style: TextStyle(
                       fontFamily: 'Montserrat',
-                      fontSize: 11,
+                      fontSize: 10.8,
                       color: colors.onSurfaceVariant,
                     ),
                   ),
@@ -1382,14 +1465,14 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
 
     return Row(
       children: [
-        Icon(icon, color: colors.primary, size: 20),
+        Icon(icon, color: colors.primary, size: 19),
         const SizedBox(width: 8),
         Text(
           text,
           style: TextStyle(
             fontFamily: 'Montserrat',
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            fontSize: 14.5,
             color: colors.onSurface,
           ),
         ),
@@ -1404,8 +1487,8 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
       text,
       style: TextStyle(
         fontFamily: 'Montserrat',
-        fontWeight: FontWeight.w600,
-        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        fontSize: 13,
         color: colors.onSurface,
       ),
     );
@@ -1431,10 +1514,11 @@ class _WareHouseAddProductPageState extends State<WarehouseAddProductPage> {
           style: TextStyle(
             fontFamily: 'Montserrat',
             color: colors.onSurface,
+            fontSize: 13,
           ),
           decoration: InputDecoration(
             prefixIcon: icon != null
-                ? Icon(icon, color: colors.primary, size: 20)
+                ? Icon(icon, color: colors.primary, size: 19)
                 : null,
             filled: true,
             fillColor: colors.surfaceContainerLow,

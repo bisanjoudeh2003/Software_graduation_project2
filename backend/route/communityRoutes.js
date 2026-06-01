@@ -40,6 +40,19 @@ router.get("/reels", communityController.getReels);
 
 router.get("/posts", communityController.getPosts);
 router.get("/posts/saved", communityController.getSavedPosts);
+
+/*
+|--------------------------------------------------------------------------
+| My posts
+|--------------------------------------------------------------------------
+| GET /api/community/my-posts
+| Photographer can see their own posts with all statuses:
+| pending / approved / rejected / hidden
+|--------------------------------------------------------------------------
+*/
+
+router.get("/my-posts", communityController.getMyPosts);
+
 router.get("/posts/:id", communityController.getPostById);
 router.post("/posts", communityController.createPost);
 router.delete("/posts/:id", communityController.deleteOwnPost);

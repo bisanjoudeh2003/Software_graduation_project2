@@ -11,12 +11,23 @@ import 'admin_manage_users_screen.dart';
 import 'admin_messages_screen.dart';
 import 'admin_manage_photographers_screen.dart';
 import 'admin_manage_clients_screen.dart';
-const Color adminPrimaryGreen = Color(0xFF2F4F46);
-const Color adminLightCream = Color(0xFFF5F1EB);
-const Color adminSoftGreen = Color(0xFF3E6B5C);
+import 'admin_manage_venues_screen.dart';
+import 'admin_manage_community_screen.dart';
+import 'admin_profile_screen.dart';
+import 'admin_manage_bookings_screen.dart';
+import 'admin_post_session_monitor_screen.dart';
+import 'admin_manage_warehouse_screen.dart';
+import 'admin_notifications_screen.dart';
+
+const Color adminPrimaryGreen = Color(0xFF2F4F3E);
+const Color adminLightCream = Color(0xFFF6F4EE);
+const Color adminSoftGreen = Color(0xFF3D6B57);
+const Color adminPaleGreen = Color(0xFFEAF3EE);
+const Color adminLightGreen = Color(0xFFC1D9CC);
 const Color adminGold = Color(0xFFC9A84C);
-const Color adminRed = Color(0xFFB84040);
+const Color adminRed = Color(0xFFD9534F);
 const Color adminGrey = Color(0xFF8A8A8A);
+const Color adminDarkText = Color(0xFF26352D);
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -72,21 +83,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Future<void> _loadAll() async {
     setState(() => loading = true);
 
-    final userData = await AuthService.getMe();
-    final dashboardData = await AdminService.getDashboardStats();
+    try {
+      final userData = await AuthService.getMe();
+      final dashboardData = await AdminService.getDashboardStats();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      user = userData;
-      data = dashboardData;
-      loading = false;
-    });
+      setState(() {
+        user = userData;
+        data = dashboardData;
+        loading = false;
+      });
 
-    await _loadBadges();
+      await _loadBadges();
 
-    _animController.reset();
-    _animController.forward();
+      _animController.reset();
+      _animController.forward();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => loading = false);
+
+      _showMessage(e.toString().replaceFirst("Exception: ", ""));
+    }
   }
 
   Future<void> _loadBadges() async {
@@ -133,6 +152,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     _loadBadges();
   }
 
+  Future<void> _openAdminNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminNotificationsScreen(),
+      ),
+    );
+
+    _loadBadges();
+  }
+
   Future<void> _openManageUsers() async {
     await Navigator.push(
       context,
@@ -154,23 +184,82 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
     _loadAll();
   }
+
   Future<void> _openManageClients() async {
-  await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const AdminManageClientsScreen(),
-    ),
-  );
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminManageClientsScreen(),
+      ),
+    );
 
-  _loadAll();
-}
-
-  void _openAdminNotifications() {
-    _showMessage("Admin notifications page will be added as a separate page");
+    _loadAll();
   }
 
-  void _openNotReadyPage(String name) {
-    _showMessage("$name page will be added as a separate page");
+  Future<void> _openManageVenues() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminManageVenuesScreen(),
+      ),
+    );
+
+    _loadAll();
+  }
+
+  Future<void> _openManageWarehouse() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminManageWarehouseScreen(),
+      ),
+    );
+
+    _loadAll();
+  }
+
+  Future<void> _openManageBookings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminManageBookingsScreen(),
+      ),
+    );
+
+    _loadAll();
+  }
+
+  Future<void> _openManageCommunity() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminManageCommunityScreen(),
+      ),
+    );
+
+    _loadAll();
+  }
+
+  Future<void> _openAdminProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminProfileScreen(),
+      ),
+    );
+
+    _loadAll();
+  }
+
+  Future<void> _openPostSessionMonitor() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminPostSessionMonitorScreen(),
+      ),
+    );
+
+    _loadAll();
   }
 
   int _toInt(dynamic value) {
@@ -232,19 +321,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            elevation: 0,
-            backgroundColor: adminPrimaryGreen,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: _buildHeader(name),
-            ),
-            bottom: _roundedBottom(),
-          ),
+          SliverToBoxAdapter(child: _buildHeader(name)),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _overviewCard(
@@ -302,6 +381,174 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
+  Widget _buildHeader(String name) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [adminPrimaryGreen, adminSoftGreen],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(34),
+          bottomRight: Radius.circular(34),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _adminAvatar(size: 58),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Welcome back 👋",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(.76),
+                            fontSize: 12.5,
+                            fontFamily: "Montserrat",
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: "Montserrat",
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(.16),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(.22),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.admin_panel_settings_outlined,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              SizedBox(width: 5),
+                              Text(
+                                "System Admin",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: "Montserrat",
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _headerBadgeIcon(
+                            Icons.chat_bubble_outline_rounded,
+                            badge: unreadMessages,
+                            onTap: _openAdminMessages,
+                          ),
+                          const SizedBox(width: 8),
+                          _headerBadgeIcon(
+                            Icons.notifications_none_rounded,
+                            badge: unreadNotifications,
+                            onTap: _openAdminNotifications,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _headerIcon(Icons.refresh_rounded, onTap: _loadAll),
+                          const SizedBox(width: 8),
+                          _headerIcon(Icons.logout_rounded, onTap: _logout),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(17),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(.13),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(.18),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(.16),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.insights_outlined,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "Manage users, bookings, venues, warehouse products, community reports, and post-session quality from one place.",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(.82),
+                          fontFamily: "Montserrat",
+                          fontSize: 12,
+                          height: 1.45,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _mainAdminControls() {
     final items = [
       _ManagementItem(
@@ -312,46 +559,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         onTap: _openManagePhotographers,
       ),
       _ManagementItem(
-  title: "Clients",
-  subtitle: "Trust, bookings and restrictions",
-  icon: Icons.person_search_outlined,
-  color: adminGold,
-  onTap: _openManageClients,
-),
+        title: "Clients",
+        subtitle: "Trust, bookings and restrictions",
+        icon: Icons.person_search_outlined,
+        color: adminGold,
+        onTap: _openManageClients,
+      ),
       _ManagementItem(
         title: "Venues",
-        subtitle: "Separate page will be added",
+        subtitle: "Visibility, review and quality",
         icon: Icons.location_city_outlined,
         color: adminSoftGreen,
-        onTap: () => _openNotReadyPage("Venues management"),
+        onTap: _openManageVenues,
       ),
       _ManagementItem(
-        title: "Reports",
-        subtitle: "Separate page will be added",
-        icon: Icons.report_outlined,
-        color: adminRed,
-        onTap: () => _openNotReadyPage("Reports management"),
-      ),
-      _ManagementItem(
-        title: "Payments",
-        subtitle: "Separate page will be added",
-        icon: Icons.payments_outlined,
+        title: "Post-Session",
+        subtitle: "Delivery, revisions and reviews",
+        icon: Icons.fact_check_outlined,
         color: adminGold,
-        onTap: () => _openNotReadyPage("Payments management"),
-      ),
-      _ManagementItem(
-        title: "Bookings",
-        subtitle: "Separate page will be added",
-        icon: Icons.event_note_outlined,
-        color: adminGold,
-        onTap: () => _openNotReadyPage("Bookings management"),
+        onTap: _openPostSessionMonitor,
       ),
       _ManagementItem(
         title: "Warehouse",
-        subtitle: "Separate page will be added",
+        subtitle: "Review products, orders and stock",
         icon: Icons.warehouse_outlined,
         color: adminSoftGreen,
-        onTap: () => _openNotReadyPage("Warehouse management"),
+        onTap: _openManageWarehouse,
       ),
     ];
 
@@ -378,10 +611,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
-                    color: item.color.withOpacity(0.06),
-                    blurRadius: 12,
+                    color: item.color.withOpacity(.045),
+                    blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
@@ -400,10 +634,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Color(0xFF1E1E1E),
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: "Playfair",
+                            color: adminDarkText,
+                            fontSize: 13.2,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: "Montserrat",
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -412,10 +646,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.black.withOpacity(0.40),
-                            fontSize: 11,
-                            height: 1.15,
-                            fontFamily: "Playfair",
+                            color: Colors.black.withOpacity(.45),
+                            fontSize: 10.5,
+                            height: 1.25,
+                            fontFamily: "Montserrat",
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -430,257 +665,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildHeader(String name) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF25463D), adminSoftGreen],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 42),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _adminAvatar(size: 76),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Welcome back 👋",
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 14,
-                        fontFamily: "Playfair",
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 27,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "Playfair",
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 13,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.16),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.22),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.admin_panel_settings_outlined,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            "System Admin",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: "Playfair",
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _headerBadgeIcon(
-                        Icons.chat_bubble_outline_rounded,
-                        badge: unreadMessages,
-                        onTap: _openAdminMessages,
-                      ),
-                      const SizedBox(width: 8),
-                      _headerBadgeIcon(
-                        Icons.notifications_none_rounded,
-                        badge: unreadNotifications,
-                        onTap: _openAdminNotifications,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _headerIcon(Icons.refresh_rounded, onTap: _loadAll),
-                      const SizedBox(width: 8),
-                      _headerIcon(Icons.logout_rounded, onTap: _logout),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  PreferredSize _roundedBottom() {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(24),
-      child: Container(
-        height: 26,
-        decoration: const BoxDecoration(
-          color: adminLightCream,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(28),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _adminAvatar({double size = 70}) {
-    final image = user?["profile_image"]?.toString();
-
-    return Container(
-      width: size,
-      height: size,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withOpacity(0.8),
-          width: 2,
-        ),
-      ),
-      child: ClipOval(
-        child: image != null && image.isNotEmpty
-            ? Image.network(
-                image,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _defaultAvatar(),
-              )
-            : _defaultAvatar(),
-      ),
-    );
-  }
-
-  Widget _defaultAvatar() {
-    return Container(
-      color: Colors.white.withOpacity(0.18),
-      child: const Icon(
-        Icons.admin_panel_settings_outlined,
-        color: Colors.white,
-        size: 34,
-      ),
-    );
-  }
-
-  Widget _headerBadgeIcon(
-    IconData icon, {
-    required int badge,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 43,
-            height: 43,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.16),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-          if (badge > 0)
-            Positioned(
-              right: -4,
-              top: -4,
-              child: Container(
-                constraints: const BoxConstraints(
-                  minWidth: 18,
-                  minHeight: 18,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                decoration: const BoxDecoration(
-                  color: adminRed,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    badge > 9 ? "9+" : badge.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: "Playfair",
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _headerIcon(IconData icon, {required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 43,
-        height: 43,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.16),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 22),
-      ),
-    );
-  }
-
-  Widget _iconBox(IconData icon, Color color) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.11),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Icon(icon, color: color, size: 21),
-    );
-  }
-
   Widget _overviewCard({
     required int totalUsers,
     required int totalPhotographers,
@@ -688,15 +672,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     required int totalBookings,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: adminPrimaryGreen.withOpacity(0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
+            color: adminPrimaryGreen.withOpacity(.06),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -705,21 +690,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           Row(
             children: [
               _iconBox(Icons.insights_outlined, adminPrimaryGreen),
-              const SizedBox(width: 12),
+              const SizedBox(width: 11),
               const Expanded(
                 child: Text(
                   "System Overview",
                   style: TextStyle(
                     color: adminPrimaryGreen,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: "Playfair",
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: "Montserrat",
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 17),
           Row(
             children: [
               Expanded(child: _overviewItem("Users", totalUsers.toString())),
@@ -747,9 +732,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           value,
           style: const TextStyle(
             color: adminPrimaryGreen,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            fontFamily: "Playfair",
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            fontFamily: "Montserrat",
           ),
         ),
         const SizedBox(height: 4),
@@ -757,9 +742,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.black.withOpacity(0.45),
-            fontSize: 11,
-            fontFamily: "Playfair",
+            color: Colors.black.withOpacity(.48),
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            fontFamily: "Montserrat",
           ),
         ),
       ],
@@ -773,14 +759,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     required int totalPendingBookings,
   }) {
     return Container(
-      padding: const EdgeInsets.all(17),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: adminRed.withOpacity(0.06),
-            blurRadius: 12,
+            color: adminRed.withOpacity(.045),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -830,15 +817,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       child: Row(
         children: [
           _iconBox(icon, color),
-          const SizedBox(width: 12),
+          const SizedBox(width: 11),
           Expanded(
             child: Text(
               title,
               style: const TextStyle(
-                color: Color(0xFF1E1E1E),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                fontFamily: "Playfair",
+                color: adminDarkText,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                fontFamily: "Montserrat",
               ),
             ),
           ),
@@ -846,9 +833,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             value.toString(),
             style: TextStyle(
               color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              fontFamily: "Playfair",
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              fontFamily: "Montserrat",
             ),
           ),
         ],
@@ -863,7 +850,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     required String storePaid,
   }) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [adminPrimaryGreen, adminSoftGreen],
@@ -873,9 +860,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: adminPrimaryGreen.withOpacity(0.18),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: adminPrimaryGreen.withOpacity(.14),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -892,16 +879,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   Widget _moneyRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 6.5),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 13,
-                fontFamily: "Playfair",
+                color: Colors.white.withOpacity(.76),
+                fontSize: 12,
+                fontFamily: "Montserrat",
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -909,9 +897,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              fontFamily: "Playfair",
+              fontSize: 15.5,
+              fontWeight: FontWeight.w900,
+              fontFamily: "Montserrat",
             ),
           ),
         ],
@@ -926,15 +914,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }) {
     return Row(
       children: [
-        Icon(icon, color: adminPrimaryGreen, size: 20),
+        Icon(icon, color: adminPrimaryGreen, size: 19),
         const SizedBox(width: 8),
         Text(
           title,
           style: const TextStyle(
-            color: Color(0xFF1E1E1E),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            fontFamily: "Playfair",
+            color: adminDarkText,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            fontFamily: "Montserrat",
           ),
         ),
         const Spacer(),
@@ -943,8 +931,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             onTap: onTap,
             child: Icon(
               Icons.arrow_forward_ios_rounded,
-              color: Colors.black.withOpacity(0.35),
-              size: 16,
+              color: Colors.black.withOpacity(.35),
+              size: 15,
             ),
           ),
       ],
@@ -976,14 +964,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.06),
-            blurRadius: 10,
+            color: color.withOpacity(.045),
+            blurRadius: 9,
             offset: const Offset(0, 4),
           ),
         ],
@@ -991,7 +980,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       child: Row(
         children: [
           _iconBox(icon, color),
-          const SizedBox(width: 12),
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1002,9 +991,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: adminPrimaryGreen,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: "Playfair",
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: "Montserrat",
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1013,9 +1002,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.black.withOpacity(0.45),
-                    fontSize: 12,
-                    fontFamily: "Playfair",
+                    color: Colors.black.withOpacity(.46),
+                    fontSize: 11.5,
+                    fontFamily: "Montserrat",
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -1029,16 +1019,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Widget _emptyCard(String text) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.black.withOpacity(0.45),
-          fontFamily: "Playfair",
+          color: Colors.black.withOpacity(.45),
+          fontFamily: "Montserrat",
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -1047,7 +1040,126 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Widget _divider() {
     return Divider(
       height: 10,
-      color: Colors.black.withOpacity(0.06),
+      color: Colors.black.withOpacity(.06),
+    );
+  }
+
+  Widget _iconBox(IconData icon, Color color) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: color.withOpacity(.10),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(icon, color: color, size: 20),
+    );
+  }
+
+  Widget _adminAvatar({double size = 58}) {
+    final image = user?["profile_image"]?.toString();
+
+    return Container(
+      width: size,
+      height: size,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withOpacity(.75),
+          width: 2,
+        ),
+      ),
+      child: ClipOval(
+        child: image != null && image.isNotEmpty
+            ? Image.network(
+                image,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _defaultAvatar(),
+              )
+            : _defaultAvatar(),
+      ),
+    );
+  }
+
+  Widget _defaultAvatar() {
+    return Container(
+      color: Colors.white.withOpacity(.18),
+      child: const Icon(
+        Icons.admin_panel_settings_outlined,
+        color: Colors.white,
+        size: 30,
+      ),
+    );
+  }
+
+  Widget _headerBadgeIcon(
+    IconData icon, {
+    required int badge,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(.16),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 21,
+            ),
+          ),
+          if (badge > 0)
+            Positioned(
+              right: -5,
+              top: -5,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: 18,
+                  minHeight: 18,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                decoration: const BoxDecoration(
+                  color: adminRed,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    badge > 9 ? "9+" : badge.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8.8,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: "Montserrat",
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerIcon(IconData icon, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(.16),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Icon(icon, color: Colors.white, size: 21),
+      ),
     );
   }
 
@@ -1057,7 +1169,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       _NavItem(Icons.groups_outlined, "Users"),
       _NavItem(Icons.event_note_outlined, "Bookings"),
       _NavItem(Icons.forum_outlined, "Community"),
-      _NavItem(Icons.person_outline, "Profile"),
+      _NavItem(Icons.person_outline, "Account"),
     ];
 
     return Container(
@@ -1069,7 +1181,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(.08),
             blurRadius: 18,
             offset: const Offset(0, -4),
           ),
@@ -1089,11 +1201,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   } else if (index == 1) {
                     _openManageUsers();
                   } else if (index == 2) {
-                    _openNotReadyPage("Bookings management");
+                    _openManageBookings();
                   } else if (index == 3) {
-                    _openNotReadyPage("Community moderation");
+                    _openManageCommunity();
                   } else if (index == 4) {
-                    _openNotReadyPage("Admin profile");
+                    _openAdminProfile();
                   }
                 },
                 child: AnimatedContainer(
@@ -1105,17 +1217,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       Icon(
                         item.icon,
                         color: index == 0 ? adminPrimaryGreen : adminGrey,
-                        size: 27,
+                        size: 26,
                       ),
                       const SizedBox(height: 3),
                       Text(
                         item.label,
                         style: TextStyle(
                           color: index == 0 ? adminPrimaryGreen : adminGrey,
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight:
-                              index == 0 ? FontWeight.bold : FontWeight.w500,
-                          fontFamily: "Playfair",
+                              index == 0 ? FontWeight.w800 : FontWeight.w500,
+                          fontFamily: "Montserrat",
                         ),
                       ),
                     ],
@@ -1160,10 +1272,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   void _showMessage(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontFamily: "Montserrat",
+            fontSize: 12.5,
+          ),
+        ),
         backgroundColor: adminPrimaryGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }

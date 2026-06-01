@@ -38,11 +38,10 @@ class _ChatPageState extends State<ChatPage> {
   Timer? _timer;
 
   bool get otherIsAdmin => widget.otherUserRole == "admin";
-
-  String get displayName {
-    if (otherIsAdmin) return "Lensia Admin";
-    return widget.otherUserName;
-  }
+String get displayName {
+  if (otherIsAdmin) return "Lensia Support";
+  return widget.otherUserName;
+}
 
   @override
   void initState() {
@@ -564,7 +563,7 @@ class _ChatPageState extends State<ChatPage> {
           const SizedBox(height: 4),
           Text(
             otherIsAdmin
-                ? "This is an official Lensia conversation"
+                ? "This is an official Lensia support conversation"
                 : "Say hello! 👋",
             style: TextStyle(
               fontFamily: "Montserrat",

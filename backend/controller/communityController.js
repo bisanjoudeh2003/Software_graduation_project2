@@ -44,6 +44,21 @@ function normalizeMediaList(media) {
   return [];
 }
 
+async function getApprovedVisiblePostOr404(postId, res) {
+  const post = await communityModel.checkApprovedPostExists(postId);
+
+  if (!post) {
+    res.status(404).json({
+      success: false,
+      message: "Post not found or not approved yet",
+    });
+
+    return null;
+  }
+
+  return post;
+}
+
 const logUserActivity = async ({
   actorId,
   targetUserId,
@@ -132,6 +147,42 @@ exports.getPosts = async (req, res) => {
   }
 };
 
+exports.getMyPosts = async (req, res) => {
+  try {
+    if (!isPhotographer(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only photographers can view their community posts",
+      });
+    }
+
+    const userId = req.user.id;
+
+    const posts = await communityModel.getMyPosts(userId);
+    const postIds = posts.map((post) => post.id);
+    const mediaMap = await communityModel.getMediaByPostIds(postIds);
+
+    const finalPosts = posts.map((post) => ({
+      ...post,
+      approval_status: post.approval_status || "pending",
+      media: mediaMap[post.id] || [],
+    }));
+
+    res.json({
+      success: true,
+      posts: finalPosts,
+    });
+  } catch (error) {
+    console.error("Get my community posts error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to load your community posts",
+      error: error.message,
+    });
+  }
+};
+
 exports.getPostById = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -142,7 +193,7 @@ exports.getPostById = async (req, res) => {
     if (!post) {
       return res.status(404).json({
         success: false,
-        message: "Post not found",
+        message: "Post not found or not approved yet",
       });
     }
 
@@ -238,21 +289,23 @@ exports.createPost = async (req, res) => {
     await logUserActivity({
       actorId: req.user.id,
       targetUserId: req.user.id,
-      action: "community_post_created",
+      action: "community_post_created_pending_review",
       category: "community",
-      description: "Photographer created a community post.",
+      description: "Photographer created a community post pending admin review.",
       metadata: {
         post_id: postId,
         title: cleanTitle,
         category: cleanCategory,
+        approval_status: "pending",
         has_media: mediaList.length > 0 || !!firstMediaUrl,
       },
     });
 
     res.status(201).json({
       success: true,
-      message: "Post created successfully",
+      message: "Post submitted successfully and is waiting for admin approval.",
       post_id: postId,
+      approval_status: "pending",
     });
   } catch (error) {
     console.error("Create community post error:", error);
@@ -310,14 +363,8 @@ exports.toggleLike = async (req, res) => {
     const userId = req.user.id;
     const postId = req.params.id;
 
-    const post = await communityModel.checkPostExists(postId);
-
-    if (!post || post.is_hidden) {
-      return res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
-    }
+    const post = await getApprovedVisiblePostOr404(postId, res);
+    if (!post) return;
 
     const result = await communityModel.toggleLike(postId, userId);
 
@@ -358,14 +405,8 @@ exports.toggleSave = async (req, res) => {
     const userId = req.user.id;
     const postId = req.params.id;
 
-    const post = await communityModel.checkPostExists(postId);
-
-    if (!post || post.is_hidden) {
-      return res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
-    }
+    const post = await getApprovedVisiblePostOr404(postId, res);
+    if (!post) return;
 
     const result = await communityModel.toggleSave(postId, userId);
 
@@ -417,6 +458,9 @@ exports.getComments = async (req, res) => {
   try {
     const postId = req.params.id;
 
+    const post = await getApprovedVisiblePostOr404(postId, res);
+    if (!post) return;
+
     const comments = await communityModel.getComments(postId);
 
     res.json({
@@ -447,14 +491,8 @@ exports.addComment = async (req, res) => {
       });
     }
 
-    const post = await communityModel.checkPostExists(postId);
-
-    if (!post || post.is_hidden) {
-      return res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
-    }
+    const post = await getApprovedVisiblePostOr404(postId, res);
+    if (!post) return;
 
     const commentId = await communityModel.addComment(
       postId,
@@ -536,14 +574,8 @@ exports.reportPost = async (req, res) => {
       });
     }
 
-    const post = await communityModel.checkPostExists(postId);
-
-    if (!post || post.is_hidden) {
-      return res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
-    }
+    const post = await getApprovedVisiblePostOr404(postId, res);
+    if (!post) return;
 
     const cleanReason = reason.toString().trim();
 

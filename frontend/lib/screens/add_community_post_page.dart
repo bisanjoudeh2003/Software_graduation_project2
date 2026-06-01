@@ -23,7 +23,6 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
   static const Color paleGreen = Color(0xFFEAF3EE);
   static const Color cream = Color(0xFFF6F4EE);
   static const Color softRed = Color(0xFFD9534F);
-  static const Color blue = Color(0xFF1565C0);
   static const Color purple = Color(0xFF7C4DBC);
 
   final TextEditingController titleController = TextEditingController();
@@ -177,7 +176,7 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
     if (body.isEmpty) {
       _showMessageBox(
         title: "Missing Content",
-        message: "Please write something before posting.",
+        message: "Please write something before submitting.",
         isError: true,
       );
       return;
@@ -192,7 +191,7 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
         uploadedMedia = await CommunityService.uploadMedia(selectedMedia);
       }
 
-      await CommunityService.createPost(
+      final result = await CommunityService.createPost(
         title: title,
         body: body,
         category: selectedCategory,
@@ -202,14 +201,19 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
 
       if (!mounted) return;
 
+      final approvalStatus = result["approval_status"]?.toString() ?? "pending";
+      final message = result["message"]?.toString() ??
+          "Your post was submitted successfully and is waiting for admin approval.";
+
       await _showMessageBox(
-        title: "Posted",
-        message: uploadedMedia.any((m) => m["media_type"] == "video")
-            ? "Your post has been shared. Video posts will also appear in Reels."
-            : "Your post has been shared successfully.",
+        title: approvalStatus == "pending"
+            ? "Submitted for Review"
+            : "Post Submitted",
+        message: message,
       );
 
       if (!mounted) return;
+
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
@@ -327,6 +331,8 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _reviewNoticeCard(),
+                  const SizedBox(height: 18),
                   _postTypeSelector(),
                   const SizedBox(height: 18),
                   _sectionTitle("Category"),
@@ -363,7 +369,7 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
                   const SizedBox(height: 14),
                   Text(
                     selectedMedia.isEmpty
-                        ? "You can publish text only, or add photos/videos. Videos will appear in the Reels page."
+                        ? "You can submit text only, or add photos/videos. Videos will appear in Reels after admin approval."
                         : "${selectedMedia.length}/10 selected",
                     style: const TextStyle(
                       fontFamily: "Montserrat",
@@ -375,6 +381,66 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewNoticeCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: primaryGreen.withOpacity(.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryGreen.withOpacity(.16),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: primaryGreen.withOpacity(.12),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(
+              Icons.pending_actions_rounded,
+              color: primaryGreen,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 11),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Admin Review Required",
+                  style: TextStyle(
+                    fontFamily: "Montserrat",
+                    color: primaryGreen,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13.5,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Your post will be submitted for admin approval before it appears in the community.",
+                  style: TextStyle(
+                    fontFamily: "Montserrat",
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -432,8 +498,8 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
               const SizedBox(height: 8),
               Text(
                 isQuestion
-                    ? "Ask photographers about gear, settings, editing, or sessions."
-                    : "Share tips, photos, videos, reels, setups and inspiration.",
+                    ? "Ask photographers about gear, settings, editing, or sessions. Your question appears after admin approval."
+                    : "Share tips, photos, videos and ideas. Your post appears after admin approval.",
                 style: TextStyle(
                   fontFamily: "Montserrat",
                   color: Colors.white.withOpacity(.75),
@@ -899,9 +965,9 @@ class _AddCommunityPostPageState extends State<AddCommunityPostPage> {
                     strokeWidth: 2,
                   ),
                 )
-              : const Icon(Icons.cloud_upload_rounded),
+              : const Icon(Icons.pending_actions_rounded),
           label: Text(
-            posting ? "Uploading & Publishing..." : "Publish",
+            posting ? "Submitting for Review..." : "Submit for Review",
             style: const TextStyle(
               fontFamily: "Montserrat",
               fontWeight: FontWeight.w900,

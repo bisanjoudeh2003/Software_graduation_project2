@@ -37,6 +37,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
   static const Color softRed = Color(0xFFD9534F);
   static const Color blue = Color(0xFF1565C0);
   static const Color brown = Color(0xFF8B5A2B);
+  static const Color orange = Color(0xFFE38B29);
+  static const Color purple = Color(0xFF7C4DBC);
 
   @override
   void initState() {
@@ -157,6 +159,11 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
   int get previewProducts => _stat("preview_products");
   int get outOfStockProducts => _stat("out_of_stock_products");
 
+  int get productsWaitingReview => _stat("products_waiting_review");
+  int get adminApprovedProducts => _stat("admin_approved_products");
+  int get adminHiddenProducts => _stat("admin_hidden_products");
+  int get flaggedProducts => _stat("flagged_products");
+
   int get totalOrders => _stat("total_orders");
   int get pendingOrders => _stat("pending_orders");
   int get paidOrders => _stat("paid_orders");
@@ -165,7 +172,22 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
   int get rejectedOrders => _stat("rejected_orders");
   int get cancelledOrders => _stat("cancelled_orders");
 
+  int get needsAdminAttention =>
+      productsWaitingReview + adminHiddenProducts + flaggedProducts;
+
   String get overviewTitle {
+    if (flaggedProducts > 0) {
+      return "Some products need your attention";
+    }
+
+    if (productsWaitingReview > 0) {
+      return "Products are waiting for admin review";
+    }
+
+    if (adminHiddenProducts > 0) {
+      return "Some products are hidden by admin";
+    }
+
     if (totalProducts == 0) {
       return "Start building your store";
     }
@@ -182,6 +204,18 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
   }
 
   String get overviewText {
+    if (flaggedProducts > 0) {
+      return "$flaggedProducts product${flaggedProducts == 1 ? "" : "s"} flagged by admin. Open Products to view the reason and update them.";
+    }
+
+    if (productsWaitingReview > 0) {
+      return "$productsWaitingReview product${productsWaitingReview == 1 ? "" : "s"} are waiting for admin approval before appearing to customers.";
+    }
+
+    if (adminHiddenProducts > 0) {
+      return "$adminHiddenProducts product${adminHiddenProducts == 1 ? "" : "s"} reviewed but hidden by admin. Check Products for details.";
+    }
+
     if (totalProducts == 0) {
       return "Add your first products such as lighting kits, cameras, graduation props, sashes, caps, and custom items.";
     }
@@ -233,8 +267,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
           title: Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: isError
                       ? softRed.withOpacity(.12)
@@ -246,7 +280,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                       ? Icons.error_outline_rounded
                       : Icons.check_circle_outline_rounded,
                   color: isError ? softRed : primaryGreen,
-                  size: 22,
+                  size: 21,
                 ),
               ),
               const SizedBox(width: 10),
@@ -257,7 +291,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                     fontFamily: "Montserrat",
                     color: isError ? softRed : primaryGreen,
                     fontWeight: FontWeight.w900,
-                    fontSize: 18,
+                    fontSize: 17,
                   ),
                 ),
               ),
@@ -268,7 +302,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
             style: const TextStyle(
               fontFamily: "Montserrat",
               color: Colors.black54,
-              fontSize: 13,
+              fontSize: 12.5,
               height: 1.5,
               fontWeight: FontWeight.w600,
             ),
@@ -276,7 +310,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
           actions: [
             SizedBox(
               width: double.infinity,
-              height: 46,
+              height: 44,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
@@ -292,6 +326,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                   style: TextStyle(
                     fontFamily: "Montserrat",
                     fontWeight: FontWeight.w900,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -320,45 +355,64 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(child: _buildHeader()),
+                  if (needsAdminAttention > 0)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                        child: _buildAdminReviewAlert(),
+                      ),
+                    ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                       child: _buildStatsRow(),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                       child: _buildSectionTitle("Quick Actions"),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 13, 20, 0),
                       child: _buildQuickActions(),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                       child: _buildSectionTitle("Store Overview"),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 13, 20, 0),
                       child: _buildDetailedStats(),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: _buildSectionTitle("Admin Review"),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 13, 20, 0),
+                      child: _buildAdminReviewStats(),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                       child: _buildSectionTitle("Today Overview"),
                     ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 100),
+                      padding: const EdgeInsets.fromLTRB(20, 13, 20, 100),
                       child: _buildOverviewCard(),
                     ),
                   ),
@@ -397,8 +451,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
               GestureDetector(
                 onTap: () => _openAndRefresh(const WarehouseProfilePage()),
                 child: Container(
-                  width: 52,
-                  height: 52,
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
@@ -407,7 +461,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                     ),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
+                    borderRadius: BorderRadius.circular(25),
                     child: _profileImg.isNotEmpty
                         ? Image.network(
                             _profileImg,
@@ -427,7 +481,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                       "Hello, $_firstName 👋",
                       style: const TextStyle(
                         fontFamily: "Montserrat",
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: primaryGreen,
                       ),
@@ -441,7 +495,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: "Montserrat",
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: Colors.black54,
                       ),
@@ -466,10 +520,10 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 21),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(19),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [
@@ -492,7 +546,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                         style: TextStyle(
                           fontFamily: "Montserrat",
                           color: Colors.white,
-                          fontSize: 21,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -504,7 +558,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                         style: const TextStyle(
                           fontFamily: "Montserrat",
                           color: Colors.white70,
-                          fontSize: 12.5,
+                          fontSize: 12,
                           height: 1.5,
                           fontWeight: FontWeight.w500,
                         ),
@@ -514,8 +568,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                 ),
                 const SizedBox(width: 14),
                 Container(
-                  width: 74,
-                  height: 74,
+                  width: 70,
+                  height: 70,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(22),
@@ -526,17 +580,19 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                       const Icon(
                         Icons.storefront_rounded,
                         color: Colors.white,
-                        size: 36,
+                        size: 34,
                       ),
-                      if (paidOrders + pendingOrders > 0)
+                      if (paidOrders + pendingOrders + needsAdminAttention > 0)
                         Positioned(
                           right: 10,
                           top: 10,
                           child: Container(
                             width: 14,
                             height: 14,
-                            decoration: const BoxDecoration(
-                              color: softRed,
+                            decoration: BoxDecoration(
+                              color: needsAdminAttention > 0
+                                  ? orange
+                                  : softRed,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -548,6 +604,87 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAdminReviewAlert() {
+    Color alertColor = orange;
+    IconData icon = Icons.pending_actions_rounded;
+    String title = "Products waiting for admin review";
+    String subtitle =
+        "$productsWaitingReview product${productsWaitingReview == 1 ? "" : "s"} will appear publicly after approval.";
+
+    if (flaggedProducts > 0) {
+      alertColor = softRed;
+      icon = Icons.flag_outlined;
+      title = "Admin flagged some products";
+      subtitle =
+          "$flaggedProducts product${flaggedProducts == 1 ? "" : "s"} need updates. Open Products to see the reason.";
+    } else if (adminHiddenProducts > 0) {
+      alertColor = Colors.grey.shade700;
+      icon = Icons.visibility_off_outlined;
+      title = "Some products are hidden";
+      subtitle =
+          "$adminHiddenProducts product${adminHiddenProducts == 1 ? "" : "s"} are reviewed but hidden by admin.";
+    }
+
+    return GestureDetector(
+      onTap: () => _openAndRefresh(const WarehouseProductsPage()),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: alertColor.withOpacity(.09),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: alertColor.withOpacity(.22)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: alertColor.withOpacity(.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: alertColor, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      color: alertColor,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: "Montserrat",
+                      color: Colors.black54,
+                      fontSize: 11.5,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: alertColor,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -575,10 +712,10 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
         const SizedBox(width: 12),
         Expanded(
           child: _statCard(
-            title: "Pending",
-            value: (pendingOrders + paidOrders).toString(),
-            icon: Icons.pending_actions_outlined,
-            color: brown,
+            title: "Needs Review",
+            value: needsAdminAttention.toString(),
+            icon: Icons.admin_panel_settings_outlined,
+            color: needsAdminAttention > 0 ? orange : brown,
           ),
         ),
       ],
@@ -592,7 +729,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       decoration: BoxDecoration(
         color: cardWhite,
         borderRadius: BorderRadius.circular(18),
@@ -607,13 +744,13 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
+          Icon(icon, color: color, size: 23),
+          const SizedBox(height: 7),
           Text(
             value,
             style: TextStyle(
               fontFamily: "Montserrat",
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
               color: color,
             ),
@@ -624,7 +761,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontFamily: "Montserrat",
-              fontSize: 10.5,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
               color: Colors.black54,
             ),
@@ -642,7 +779,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
             title,
             style: const TextStyle(
               fontFamily: "Montserrat",
-              fontSize: 19,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               color: primaryGreen,
             ),
@@ -682,10 +819,14 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
               child: _actionCard(
                 icon: Icons.inventory_2_outlined,
                 title: "Products",
-                subtitle: "$availableProducts available",
-                badge: outOfStockProducts > 0
-                    ? "$outOfStockProducts out"
-                    : null,
+                subtitle: adminApprovedProducts > 0
+                    ? "$adminApprovedProducts approved"
+                    : "$availableProducts available",
+                badge: needsAdminAttention > 0
+                    ? "$needsAdminAttention review"
+                    : outOfStockProducts > 0
+                        ? "$outOfStockProducts out"
+                        : null,
                 onTap: () => _openAndRefresh(
                   const WarehouseProductsPage(),
                 ),
@@ -737,8 +878,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 128,
-        padding: const EdgeInsets.all(15),
+        height: 124,
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: cardWhite,
           borderRadius: BorderRadius.circular(20),
@@ -757,13 +898,13 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: lightGreen.withOpacity(0.55),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(icon, color: primaryGreen, size: 23),
+                  child: Icon(icon, color: primaryGreen, size: 22),
                 ),
                 const Spacer(),
                 Text(
@@ -772,7 +913,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: "Montserrat",
-                    fontSize: 14,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w800,
                     color: primaryGreen,
                   ),
@@ -784,7 +925,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: "Montserrat",
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w500,
                     color: Colors.black54,
                   ),
@@ -809,7 +950,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                     style: const TextStyle(
                       fontFamily: "Montserrat",
                       color: softRed,
-                      fontSize: 10,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -824,7 +965,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
   Widget _buildDetailedStats() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: cardWhite,
         borderRadius: BorderRadius.circular(22),
@@ -851,7 +992,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                 title: "Custom",
                 value: customProducts.toString(),
                 icon: Icons.edit_note_rounded,
-                color: const Color(0xFF7C4DBC),
+                color: purple,
               ),
               _miniOverviewItem(
                 title: "Preview",
@@ -889,6 +1030,74 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
     );
   }
 
+  Widget _buildAdminReviewStats() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: cardWhite,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _miniOverviewItem(
+                title: "Waiting",
+                value: productsWaitingReview.toString(),
+                icon: Icons.pending_actions_rounded,
+                color: orange,
+              ),
+              _miniOverviewItem(
+                title: "Approved",
+                value: adminApprovedProducts.toString(),
+                icon: Icons.verified_outlined,
+                color: const Color(0xFF2E7D32),
+              ),
+              _miniOverviewItem(
+                title: "Hidden",
+                value: adminHiddenProducts.toString(),
+                icon: Icons.visibility_off_outlined,
+                color: Colors.grey.shade700,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _miniOverviewItem(
+                title: "Flagged",
+                value: flaggedProducts.toString(),
+                icon: Icons.flag_outlined,
+                color: softRed,
+              ),
+              _miniOverviewItem(
+                title: "Out Stock",
+                value: outOfStockProducts.toString(),
+                icon: Icons.inventory_outlined,
+                color: brown,
+              ),
+              _miniOverviewItem(
+                title: "Total",
+                value: totalProducts.toString(),
+                icon: Icons.storefront_outlined,
+                color: primaryGreen,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _miniOverviewItem({
     required String title,
     required String value,
@@ -899,13 +1108,13 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
       child: Column(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 37,
+            height: 37,
             decoration: BoxDecoration(
               color: color.withOpacity(.1),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 19),
           ),
           const SizedBox(height: 7),
           Text(
@@ -913,7 +1122,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
             style: TextStyle(
               fontFamily: "Montserrat",
               color: color,
-              fontSize: 15,
+              fontSize: 14.5,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -924,7 +1133,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
             style: const TextStyle(
               fontFamily: "Montserrat",
               color: Colors.black45,
-              fontSize: 10,
+              fontSize: 9.8,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -936,7 +1145,11 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
   Widget _buildOverviewCard() {
     return GestureDetector(
       onTap: () {
-        if (totalProducts == 0) {
+        if (flaggedProducts > 0 ||
+            productsWaitingReview > 0 ||
+            adminHiddenProducts > 0) {
+          _openAndRefresh(const WarehouseProductsPage());
+        } else if (totalProducts == 0) {
           _openAndRefresh(const WarehouseAddProductPage());
         } else if (pendingOrders + paidOrders > 0) {
           _openAndRefresh(const WarehouseOrdersPage());
@@ -946,7 +1159,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(17),
         decoration: BoxDecoration(
           color: cardWhite,
           borderRadius: BorderRadius.circular(22),
@@ -962,22 +1175,28 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
         child: Row(
           children: [
             Container(
-              width: 54,
-              height: 54,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: lightGreen.withOpacity(.55),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Icon(
-                totalProducts == 0
-                    ? Icons.add_box_outlined
-                    : pendingOrders + paidOrders > 0
-                        ? Icons.receipt_long_outlined
-                        : outOfStockProducts > 0
-                            ? Icons.inventory_2_outlined
-                            : Icons.check_circle_outline_rounded,
+                flaggedProducts > 0
+                    ? Icons.flag_outlined
+                    : productsWaitingReview > 0
+                        ? Icons.pending_actions_rounded
+                        : adminHiddenProducts > 0
+                            ? Icons.visibility_off_outlined
+                            : totalProducts == 0
+                                ? Icons.add_box_outlined
+                                : pendingOrders + paidOrders > 0
+                                    ? Icons.receipt_long_outlined
+                                    : outOfStockProducts > 0
+                                        ? Icons.inventory_2_outlined
+                                        : Icons.check_circle_outline_rounded,
                 color: primaryGreen,
-                size: 27,
+                size: 26,
               ),
             ),
             const SizedBox(width: 14),
@@ -989,18 +1208,18 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                     overviewTitle,
                     style: const TextStyle(
                       fontFamily: "Montserrat",
-                      fontSize: 16,
+                      fontSize: 15.5,
                       fontWeight: FontWeight.w800,
                       color: primaryGreen,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 7),
                   Text(
                     overviewText,
                     style: const TextStyle(
                       fontFamily: "Montserrat",
-                      fontSize: 12.5,
-                      height: 1.55,
+                      fontSize: 12,
+                      height: 1.5,
                       fontWeight: FontWeight.w500,
                       color: Colors.black54,
                     ),
@@ -1021,8 +1240,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 42,
-        height: 42,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           color: cream,
           borderRadius: BorderRadius.circular(13),
@@ -1030,7 +1249,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
         child: Icon(
           icon,
           color: primaryGreen,
-          size: 22,
+          size: 21,
         ),
       ),
     );
@@ -1046,8 +1265,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: cream,
               borderRadius: BorderRadius.circular(13),
@@ -1055,7 +1274,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
             child: const Icon(
               Icons.notifications_none_rounded,
               color: primaryGreen,
-              size: 22,
+              size: 21,
             ),
           ),
           if (count > 0)
@@ -1064,8 +1283,8 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
               top: -5,
               child: Container(
                 constraints: const BoxConstraints(
-                  minWidth: 19,
-                  minHeight: 19,
+                  minWidth: 18,
+                  minHeight: 18,
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 5),
                 decoration: const BoxDecoration(
@@ -1078,7 +1297,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
                     style: const TextStyle(
                       fontFamily: "Montserrat",
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: 8.8,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -1096,7 +1315,7 @@ class _WarehouseOwnerHomeState extends State<WarehouseOwnerHome> {
       child: const Icon(
         Icons.person,
         color: primaryGreen,
-        size: 28,
+        size: 27,
       ),
     );
   }

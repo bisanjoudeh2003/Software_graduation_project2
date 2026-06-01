@@ -13,6 +13,11 @@ const fcmTokenRoutes = require("./route/fcmTokenRoutes");
 const adminRoutes = require("./route/adminRoutes");
 const adminPhotographerRoutes = require("./route/adminPhotographerRoutes");
 const adminClientRoutes = require("./route/adminClientRoutes");
+const adminVenueRoutes = require("./route/adminVenueRoutes");
+const adminCommunityRoutes = require("./route/adminCommunityRoutes");
+const adminBookingRoutes = require("./route/adminBookingRoutes");
+const adminPostSessionRoutes = require("./route/adminPostSessionRoutes");
+const adminWarehouseRoutes = require("./route/adminWarehouseRoutes");
 
 // Venue-side routes
 const photographerPortfolioRoutes = require("./route/photographerPortfolioRoutes");
@@ -93,6 +98,11 @@ app.use("/api/fcm", fcmTokenRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/photographers", adminPhotographerRoutes);
 app.use("/api/admin/clients", adminClientRoutes);
+app.use("/api/admin/venues", adminVenueRoutes);
+app.use("/api/admin/community", adminCommunityRoutes);
+app.use("/api/admin/bookings", adminBookingRoutes);
+app.use("/api/admin/post-session", adminPostSessionRoutes);
+app.use("/api/admin/warehouse", adminWarehouseRoutes);
 
 // ── VENUE-SIDE ROUTES ────────────────────────────────────────
 app.use("/api/photographer-portfolio", photographerPortfolioRoutes);

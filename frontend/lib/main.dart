@@ -25,12 +25,6 @@ Future<void> main() async {
         "pk_test_51TC2if4t47OxRIeEd647jAiHcCyYh6SVT3jxOI3t0974Wj5UQ0IulWU3i74nQ0MyuNspwdOvcVsSkMYbiHs0ONo800qtmBDycg";
 
     await Stripe.instance.applySettings();
-
-    try {
-      await PushNotificationService.init();
-    } catch (e) {
-      debugPrint("PUSH NOTIFICATION INIT ERROR: $e");
-    }
   }
 
   runApp(const MyApp());
@@ -62,6 +56,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+
+    if (!kIsWeb) {
+      PushNotificationService.setNavigatorKey(_navigatorKey);
+    }
+
     _initApp();
     _setupDeepLinks();
   }
@@ -96,6 +95,17 @@ class _MyAppState extends State<MyApp> {
     }
 
     return status == "active";
+  }
+
+  Future<void> _initPushAfterLogin() async {
+    if (kIsWeb) return;
+
+    try {
+      await PushNotificationService.init();
+      await PushNotificationService.registerTokenWithBackend();
+    } catch (e) {
+      debugPrint("PUSH NOTIFICATION INIT ERROR: $e");
+    }
   }
 
   Future<void> _initApp() async {
@@ -146,6 +156,8 @@ class _MyAppState extends State<MyApp> {
       if (user == null) {
         _home = kIsWeb ? const ResponsiveLoginPage() : const WelcomeScreen();
       } else {
+        await _initPushAfterLogin();
+
         isDark = user["dark_mode"] == 1 ||
             user["dark_mode"] == true ||
             user["dark_mode"]?.toString() == "1";

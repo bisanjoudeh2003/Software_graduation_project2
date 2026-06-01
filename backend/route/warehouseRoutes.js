@@ -271,7 +271,9 @@ router.get("/products/public", async (req, res) => {
       FROM warehouse_products p
       JOIN users u ON p.warehouse_owner_id = u.id
       WHERE p.is_active = 1
-        AND p.status != 'hidden'
+  AND p.status != 'hidden'
+  AND p.admin_visibility = 'visible'
+  AND p.product_reviewed = 1
       ORDER BY p.id DESC
       `
     );
@@ -1365,18 +1367,85 @@ router.get("/dashboard", requireWarehouseOwner, async (req, res) => {
     const ownerId = req.user.id;
 
     const [[productStats]] = await db.query(
-      `
-      SELECT
-        COUNT(*) AS total_products,
-        SUM(CASE WHEN status = 'available' AND is_active = 1 THEN 1 ELSE 0 END) AS available_products,
-        SUM(CASE WHEN product_type = 'custom' THEN 1 ELSE 0 END) AS custom_products,
-        SUM(CASE WHEN allow_preview = 1 THEN 1 ELSE 0 END) AS preview_products,
-        SUM(CASE WHEN stock_quantity <= 0 AND product_type = 'ready' THEN 1 ELSE 0 END) AS out_of_stock_products
-      FROM warehouse_products
-      WHERE warehouse_owner_id = ?
-      `,
-      [ownerId]
-    );
+  `
+  SELECT
+    COUNT(*) AS total_products,
+
+    SUM(
+      CASE 
+        WHEN status = 'available' 
+          AND admin_visibility = 'visible'
+          AND product_reviewed = 1
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS available_products,
+
+    SUM(
+      CASE 
+        WHEN product_type = 'custom' 
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS custom_products,
+
+    SUM(
+      CASE 
+        WHEN allow_preview = 1 
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS preview_products,
+
+    SUM(
+      CASE 
+        WHEN stock_quantity <= 0 
+          AND product_type = 'ready' 
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS out_of_stock_products,
+
+    SUM(
+      CASE 
+        WHEN product_reviewed = 0 
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS products_waiting_review,
+
+    SUM(
+      CASE 
+        WHEN product_reviewed = 1 
+          AND admin_visibility = 'visible' 
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS admin_approved_products,
+
+    SUM(
+      CASE 
+        WHEN product_reviewed = 1 
+          AND admin_visibility = 'hidden' 
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS admin_hidden_products,
+
+    SUM(
+      CASE 
+        WHEN product_flagged = 1 
+        THEN 1 
+        ELSE 0 
+      END
+    ) AS flagged_products
+
+  FROM warehouse_products
+  WHERE warehouse_owner_id = ?
+    AND is_active = 1
+  `,
+  [ownerId]
+);
 
     const [[orderStats]] = await db.query(
       `
@@ -1402,7 +1471,10 @@ router.get("/dashboard", requireWarehouseOwner, async (req, res) => {
         custom_products: Number(productStats.custom_products || 0),
         preview_products: Number(productStats.preview_products || 0),
         out_of_stock_products: Number(productStats.out_of_stock_products || 0),
-
+products_waiting_review: Number(productStats.products_waiting_review || 0),
+admin_approved_products: Number(productStats.admin_approved_products || 0),
+admin_hidden_products: Number(productStats.admin_hidden_products || 0),
+flagged_products: Number(productStats.flagged_products || 0),
         total_orders: Number(orderStats.total_orders || 0),
         pending_orders: Number(orderStats.pending_orders || 0),
         paid_orders: Number(orderStats.paid_orders || 0),
@@ -1490,6 +1562,7 @@ router.post("/products", requireWarehouseOwner, async (req, res) => {
       });
     }
 
+    const cleanName = name.toString().trim();
     const cleanProductType = product_type === "custom" ? "custom" : "ready";
 
     const cleanPreviewType =
@@ -1508,7 +1581,7 @@ router.post("/products", requireWarehouseOwner, async (req, res) => {
 
     let status = "available";
 
-    if (cleanStock <= 0 && cleanProductType === "ready") {
+    if (cleanProductType === "ready" && cleanStock <= 0) {
       status = "out_of_stock";
     }
 
@@ -1533,14 +1606,20 @@ router.post("/products", requireWarehouseOwner, async (req, res) => {
         allow_event_date,
         allow_reference_image,
         custom_fields,
-        status
+        status,
+        admin_visibility,
+        product_reviewed,
+        product_reviewed_at,
+        product_reviewed_by,
+        product_flagged,
+        product_flag_reason
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         ownerId,
         store_id || null,
-        name.toString().trim(),
+        cleanName,
         category || null,
         cleanProductType,
         cleanPreviewType,
@@ -1556,12 +1635,35 @@ router.post("/products", requireWarehouseOwner, async (req, res) => {
         toBooleanNumber(allow_reference_image),
         safeJson(custom_fields),
         status,
+
+        // Admin review defaults
+        "hidden",
+        0,
+        null,
+        null,
+        0,
+        null,
       ]
     );
 
+    try {
+      await notificationModel.createNotificationForAdmins(
+        "New Warehouse Product Review",
+        `A new product "${cleanName}" is waiting for admin approval.`,
+        "admin_warehouse_product",
+        "warehouse_product",
+        result.insertId
+      );
+    } catch (notificationError) {
+      console.log(
+        "Admin warehouse product notification error:",
+        notificationError.message
+      );
+    }
+
     res.status(201).json({
       success: true,
-      message: "Product added successfully",
+      message: "Product submitted successfully and is waiting for admin review.",
       product_id: result.insertId,
     });
   } catch (error) {

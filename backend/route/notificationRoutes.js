@@ -22,6 +22,22 @@ router.get(
   notificationController.getMyNotifications
 );
 
+// POST /api/notifications/fcm-token
+router.post(
+  "/fcm-token",
+  authMiddleware,
+  roleMiddleware(allRoles),
+  notificationController.saveMyFcmToken
+);
+
+// DELETE /api/notifications/fcm-token
+router.delete(
+  "/fcm-token",
+  authMiddleware,
+  roleMiddleware(allRoles),
+  notificationController.deleteMyFcmToken
+);
+
 // PATCH /api/notifications/read-all
 // لازم تيجي قبل /:id/read عشان ما يتعامل معها كـ id
 router.patch(

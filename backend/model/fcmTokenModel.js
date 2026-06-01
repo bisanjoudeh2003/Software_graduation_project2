@@ -30,6 +30,8 @@ const getTokensByUser = async (userId) => {
 };
 
 const deleteToken = async (fcmToken) => {
+  if (!fcmToken) return null;
+
   const [result] = await db.query(
     `
     DELETE FROM user_fcm_tokens
@@ -41,8 +43,39 @@ const deleteToken = async (fcmToken) => {
   return result;
 };
 
+const deleteUserToken = async (userId, fcmToken) => {
+  if (!userId || !fcmToken) return null;
+
+  const [result] = await db.query(
+    `
+    DELETE FROM user_fcm_tokens
+    WHERE user_id = ?
+      AND fcm_token = ?
+    `,
+    [userId, fcmToken]
+  );
+
+  return result;
+};
+
+const deleteAllTokensByUser = async (userId) => {
+  if (!userId) return null;
+
+  const [result] = await db.query(
+    `
+    DELETE FROM user_fcm_tokens
+    WHERE user_id = ?
+    `,
+    [userId]
+  );
+
+  return result;
+};
+
 module.exports = {
   saveToken,
   getTokensByUser,
   deleteToken,
+  deleteUserToken,
+  deleteAllTokensByUser,
 };

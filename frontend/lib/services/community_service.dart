@@ -53,6 +53,30 @@ class CommunityService {
     throw Exception(body["message"] ?? "Failed to load community posts");
   }
 
+  static Future<List<dynamic>> getMyPosts() async {
+    final token = await AuthService.getToken();
+
+    if (token == null) {
+      throw Exception("User not authenticated");
+    }
+
+    final response = await http.get(
+      Uri.parse("$communityUrl/my-posts"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final body = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return body["posts"] ?? [];
+    }
+
+    throw Exception(body["message"] ?? "Failed to load your community posts");
+  }
+
   static Future<Map<String, dynamic>> getPostById(int postId) async {
     final token = await AuthService.getToken();
 

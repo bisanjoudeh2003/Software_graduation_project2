@@ -156,4 +156,31 @@ class MessageService {
       return [];
     }
   }
+
+  static Future<Map<String, dynamic>?> getOrCreateSupportConversation() async {
+  try {
+    final token = await AuthService.getToken();
+    if (token == null) return null;
+
+    final res = await http.post(
+      Uri.parse("$baseUrl/conversations/support"),
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    debugPrint("SUPPORT CONV STATUS: ${res.statusCode}");
+    debugPrint("SUPPORT CONV BODY: ${res.body}");
+
+    if (res.statusCode == 200) {
+      final decoded = jsonDecode(res.body);
+      if (decoded is Map<String, dynamic>) return decoded;
+    }
+
+    return null;
+  } catch (e) {
+    debugPrint("SUPPORT CONV ERROR: $e");
+    return null;
+  }
+  }
 }
