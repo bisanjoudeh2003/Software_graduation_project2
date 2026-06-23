@@ -36,6 +36,10 @@ Professional photographers who manage portfolios, bookings, galleries, revisions
 
 Owners of photography venues available for reservation through the platform.
 
+## Warehouse Owner
+
+Manages photography equipment and products within the Lensia marketplace, including inventory, product listings, and customer orders.
+
 ## Administrator
 
 System managers responsible for approvals, moderation, monitoring, reporting, and quality assurance.
@@ -524,6 +528,36 @@ Administrators can:
 - Missing reviews.
 - Revision statistics.
 - Quality score statistics.
+
+
+## Warehouse Owner
+
+### Product Management
+- Add new products.
+- Edit product information.
+- Delete products.
+- Upload product images.
+- Set product prices.
+- Organize products into categories.
+
+### Inventory Management
+- Manage stock quantities.
+- Monitor product availability.
+- Restock products.
+- Mark products as unavailable when out of stock.
+
+### Order Management
+- View incoming orders.
+- Review order details.
+- Update order status.
+- Confirm order completion.
+- Manage cancelled orders.
+
+### Marketplace Visibility
+- Publish products.
+- Hide products.
+- Manage featured products.
+- Control product visibility within the store.
 
 
 # 🏗 Technology Stack
